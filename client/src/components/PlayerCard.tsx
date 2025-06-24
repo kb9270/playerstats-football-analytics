@@ -27,8 +27,8 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         <div className="flex items-center space-x-3">
           <MapPin className="w-4 h-4 text-gray-400" />
           <div>
-            <span className="text-gray-400">Club:</span>
-            <span className="ml-2 font-medium">{player.team || "N/A"}</span>
+            <span className="text-contrast-medium">Club:</span>
+            <span className="ml-2 font-medium text-contrast-high">{player.team || "N/A"}</span>
           </div>
         </div>
         
@@ -39,7 +39,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         <div className="flex items-center space-x-3">
           <Calendar className="w-4 h-4 text-gray-400" />
           <div>
-            <span className="text-gray-400">Âge:</span>
+            <span className="text-contrast-medium">Âge:</span>
             <span className="ml-2 font-medium text-stats-accent">
               {player.age ? `${player.age} ANS` : "N/A"}
             </span>

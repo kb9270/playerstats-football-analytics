@@ -19,7 +19,7 @@ export default function Header() {
             <div className="text-2xl font-bold text-white">
               PLAYER<span className="text-stats-accent">STATS</span>
             </div>
-            <div className="hidden md:block text-sm text-gray-400">
+            <div className="hidden md:block text-sm text-contrast-medium">
               Analyses Footballistiques Avancées
             </div>
           </Link>
@@ -34,7 +34,7 @@ export default function Header() {
                   className={`flex items-center space-x-2 transition-colors ${
                     item.active 
                       ? "text-stats-accent" 
-                      : "text-gray-400 hover:text-stats-accent"
+                      : "text-contrast-medium hover:text-stats-accent"
                   }`}
                 >
                   <Icon className="w-4 h-4" />

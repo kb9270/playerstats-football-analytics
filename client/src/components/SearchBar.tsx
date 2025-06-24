@@ -55,7 +55,7 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
       <form onSubmit={handleSearch} className="relative">
         <Input
           type="text"
-          placeholder="Rechercher un joueur (ex: Kylian Mbappé, Erling Haaland...)"
+          placeholder="Rechercher n'importe quel joueur professionnel (ex: Kylian Mbappé, Lionel Messi, Haaland...)"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -99,17 +99,26 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
                       <User className="w-5 h-5 text-gray-400" />
                     </div>
                     <div>
-                      <div className="font-medium text-white">{player.name}</div>
-                      <div className="text-sm text-gray-400">
+                      <div className="font-medium text-contrast-high">{player.name}</div>
+                      <div className="text-sm text-contrast-medium">
                         {player.team} • {player.position}
+                        {player.age && ` • ${player.age} ans`}
+                        {player.nationality && ` • ${player.nationality}`}
                       </div>
+                      {player.marketValue && (
+                        <div className="text-xs text-stats-accent font-medium">
+                          Valeur: {player.marketValue > 1000000 
+                            ? `${(player.marketValue / 1000000).toFixed(1)}M€` 
+                            : `${(player.marketValue / 1000).toFixed(0)}K€`}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-4 text-center text-gray-400">
-                {query.length > 2 ? "Aucun joueur trouvé" : "Tapez au moins 3 caractères"}
+              <div className="p-4 text-center text-contrast-medium">
+                {query.length > 2 ? "Aucun joueur trouvé. Essayez avec un nom complet ou une autre orthographe." : "Tapez au moins 3 caractères pour rechercher parmi tous les joueurs professionnels"}
               </div>
             )}
           </CardContent>
