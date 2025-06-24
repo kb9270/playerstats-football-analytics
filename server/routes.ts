@@ -5,6 +5,7 @@ import { scraper } from "./services/scraper";
 import { pdfReportGenerator } from "./services/pdfReportGenerator";
 import { soccerDataService } from "./services/soccerDataService";
 import { enhancedSoccerDataService } from "./services/enhancedSoccerDataService";
+import { enhancedReportService } from "./services/enhancedReportService";
 import { aiService } from "./services/aiService";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
@@ -417,6 +418,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting position comparison:', error);
       res.status(500).json({ error: "Failed to get position comparison" });
+    }
+  });
+
+  // Enhanced player report with rate limiting
+  app.get("/api/players/:id/enhanced-report", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      const player = await storage.getPlayer(id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      
+      console.log(`Generating enhanced report for: ${player.name} with rate limiting protection`);
+      
+      // Generate complete report with enhanced rate limiting
+      const report = await enhancedReportService.generateCompletePlayerReport(
+        player.name,
+        player.team,
+        2024
+      );
+      
+      if (report && report.success) {
+        res.json(report);
+      } else {
+        res.status(500).json({ 
+          error: "Failed to generate enhanced report",
+          details: report?.error || "Unknown error"
+        });
+      }
+    } catch (error) {
+      console.error('Error generating enhanced report:', error);
+      res.status(500).json({ error: "Failed to generate enhanced report" });
+    }
+  });
+
+  // Generate enhanced PDF with Flask-style endpoint
+  app.post("/api/joueur/rapport", async (req, res) => {
+    try {
+      const { nom } = req.body;
+      
+      if (!nom) {
+        return res.status(400).json({ 
+          status: "error", 
+          message: "Nom du joueur requis" 
+        });
+      }
+      
+      console.log(`Generating Flask-style report for: ${nom}`);
+      
+      // Search for player first
+      const players = await storage.searchPlayers(nom);
+      let player = players.length > 0 ? players[0] : null;
+      
+      if (!player) {
+        // Try to create player if not found
+        try {
+          await scraper.scrapeAndStorePlayer(nom);
+          const newPlayers = await storage.searchPlayers(nom);
+          player = newPlayers.length > 0 ? newPlayers[0] : null;
+        } catch (error) {
+          console.log('Could not create player:', error);
+        }
+      }
+      
+      if (!player) {
+        return res.status(404).json({
+          status: "error",
+          message: `Aucune donnée trouvée pour ${nom}`
+        });
+      }
+      
+      // Generate enhanced report
+      const report = await enhancedReportService.generateCompletePlayerReport(
+        player.name,
+        player.team
+      );
+      
+      if (report && report.success) {
+        // Generate PDF with enhanced data
+        const stats = await storage.getPlayerStats(player.id);
+        const scoutingReport = await storage.getScoutingReport(player.id, '2024-2025');
+        
+        const pdfBuffer = await pdfReportGenerator.generateScoutingReport(
+          player, 
+          stats, 
+          scoutingReport || report
+        );
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="rapport-${player.name.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
+        res.send(pdfBuffer);
+      } else {
+        res.status(404).json({
+          status: "error",
+          message: "Impossible de générer le rapport"
+        });
+      }
+    } catch (error) {
+      console.error('Error in Flask-style report generation:', error);
+      res.status(500).json({
+        status: "error",
+        message: error.message || "Erreur lors de la génération du rapport"
+      });
     }
   });
 

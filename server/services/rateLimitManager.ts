@@ -3,12 +3,12 @@ export class RateLimitManager {
   private lastRequestTimes: Map<string, number> = new Map();
   private processingQueues: Set<string> = new Set();
   
-  // Délais minimums par service (en millisecondes)
+  // Délais minimums par service (en millisecondes) - Augmentés pour éviter 429
   private serviceDelays = {
-    'fbref': 3000,      // 3 secondes entre les requêtes FBref
-    'transfermarkt': 2000, // 2 secondes pour Transfermarkt
-    'soccerdata': 2500,    // 2.5 secondes pour soccerdata
-    'default': 2000
+    'fbref': 5000,      // 5 secondes entre les requêtes FBref (augmenté)
+    'transfermarkt': 3000, // 3 secondes pour Transfermarkt (augmenté)
+    'soccerdata': 4000,    // 4 secondes pour soccerdata (augmenté)
+    'default': 3000
   };
 
   async executeWithRateLimit<T>(

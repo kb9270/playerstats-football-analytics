@@ -1,0 +1,57 @@
+# fbref_report.py
+
+from soccerdata import FBref
+import pandas as pd
+import pdfkit
+import os
+
+def generer_rapport_joueur(nom_joueur, saison=2023):
+    try:
+        fb = FBref(leagues="Big 5 European Leagues", seasons=saison)
+        joueurs = fb.read_player_stats(stat_type="standard")
+        joueur = joueurs[joueurs['player'].str.lower() == nom_joueur.lower()]
+
+        if joueur.empty:
+            return {"status": "not_found", "message": f"Aucune donnée trouvée pour {nom_joueur}"}
+
+        joueur = joueur.iloc[0]
+
+        html = f"""
+        <html>
+        <head>
+          <style>
+            body {{ font-family: Arial; padding: 20px; background: #f4f6fc; }}
+            h1 {{ color: #004aad; }}
+            .section {{ margin-bottom: 20px; }}
+            .stat {{ margin: 5px 0; }}
+            .label {{ font-weight: bold; color: #222; }}
+          </style>
+        </head>
+        <body>
+          <h1>Fiche de performance – {joueur['player']}</h1>
+          <div class="section">
+            <div class="stat"><span class="label">Club :</span> {joueur['squad']}</div>
+            <div class="stat"><span class="label">Âge :</span> {joueur['age']}</div>
+            <div class="stat"><span class="label">Position :</span> {joueur['position']}</div>
+            <div class="stat"><span class="label">Minutes jouées :</span> {joueur['minutes']}</div>
+            <div class="stat"><span class="label">Passes réussies (%):</span> {joueur['passes_pct']}</div>
+            <div class="stat"><span class="label">Passes clés :</span> {joueur['key_passes']}</div>
+            <div class="stat"><span class="label">xA :</span> {joueur['xa']}</div>
+            <div class="stat"><span class="label">Tirs :</span> {joueur['shots']}</div>
+            <div class="stat"><span class="label">Buts :</span> {joueur['goals']}</div>
+            <div class="stat"><span class="label">xG :</span> {joueur['xg']}</div>
+            <div class="stat"><span class="label">Duels gagnés :</span> {joueur['won']}</div>
+          </div>
+        </body>
+        </html>
+        """
+
+        # Export HTML en PDF
+        with open("fiche_joueur.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        pdfkit.from_file("fiche_joueur.html", "static/fiche_joueur.pdf")
+        return {"status": "ok", "fichier": "static/fiche_joueur.pdf"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

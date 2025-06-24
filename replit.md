@@ -140,6 +140,9 @@ This is a full-stack web application for football player analysis and comparison
 - June 24, 2025: Implemented centralized rate limiting system to prevent 429 errors
 - June 24, 2025: Fixed PDF generation with improved Puppeteer configuration
 - June 24, 2025: Added queue management for API requests with automatic delays
+- June 24, 2025: Enhanced rate limiting with longer delays (FBref: 5s, Transfermarkt: 3s)
+- June 24, 2025: Added enhanced report service with intelligent fallbacks and 429 protection
+- June 24, 2025: Created Flask-style API endpoints for better Python integration
 
 ## User Preferences
 
