@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { scraper } from "./services/scraper";
 import { pdfReportGenerator } from "./services/pdfReportGenerator";
 import { soccerDataService } from "./services/soccerDataService";
+import { enhancedSoccerDataService } from "./services/enhancedSoccerDataService";
 import { aiService } from "./services/aiService";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
@@ -177,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Force precise data refresh using soccerdata
+  // Force comprehensive analysis refresh using enhanced soccerdata
   app.post("/api/players/:id/refresh-precise", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -190,13 +191,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Player not found" });
       }
       
-      console.log(`Force refreshing precise data for: ${player.name}`);
+      console.log(`Force refreshing comprehensive data for: ${player.name}`);
       
-      // Ensure Python script exists
-      await soccerDataService.ensurePythonScriptExists();
+      // Ensure Python scripts exist
+      await enhancedSoccerDataService.ensurePythonScriptExists();
       
-      // Get detailed stats from soccerdata
-      const detailedStats = await soccerDataService.getPlayerDetailedStats(
+      // Get comprehensive analysis
+      const comprehensiveAnalysis = await enhancedSoccerDataService.getComprehensivePlayerAnalysis(
         player.name,
         player.team,
         player.league
@@ -205,52 +206,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let hasStats = false;
       let hasReport = false;
       
-      if (detailedStats && detailedStats.success) {
-        // Store precise stats
-        await storage.createPlayerStats({
-          playerId: id,
-          season: '2024-2025',
-          competition: 'SoccerData Precise',
-          ...detailedStats.player_stats,
-          source: 'soccerdata'
-        });
-        hasStats = true;
+      if (comprehensiveAnalysis && comprehensiveAnalysis.success) {
+        console.log(`✓ Got comprehensive analysis for ${player.name}`);
         
-        // Get performance analysis if position available
-        if (player.position) {
-          const performanceAnalysis = await soccerDataService.getPlayerPerformanceAnalysis(
-            player.name,
-            player.position
-          );
-          
-          if (performanceAnalysis && performanceAnalysis.success) {
-            await storage.createScoutingReport({
-              playerId: id,
-              season: '2024-2025',
-              competition: 'SoccerData Analysis',
-              position: player.position,
-              percentiles: performanceAnalysis.percentiles,
-              strengths: scraper.calculateStrengths(performanceAnalysis.percentiles),
-              weaknesses: scraper.calculateWeaknesses(performanceAnalysis.percentiles),
-              overallRating: scraper.calculateOverallRating(performanceAnalysis.percentiles)
-            });
-            hasReport = true;
-          }
+        // Store comprehensive stats
+        const keyStats = comprehensiveAnalysis.key_stats;
+        if (keyStats) {
+          await storage.createPlayerStats({
+            playerId: id,
+            season: '2024-2025',
+            competition: 'Comprehensive Analysis',
+            goals: keyStats.goals,
+            assists: keyStats.assists,
+            shots: keyStats.shots,
+            shotsOnTarget: keyStats.shots_on_target,
+            passes: keyStats.pass_completion,
+            tackles: keyStats.tackles,
+            interceptions: keyStats.interceptions,
+            rating: comprehensiveAnalysis.current_form?.rating || 7.0,
+            source: 'enhanced_soccerdata'
+          });
+          hasStats = true;
+        }
+        
+        // Create enhanced scouting report
+        if (comprehensiveAnalysis.percentiles && player.position) {
+          await storage.createScoutingReport({
+            playerId: id,
+            season: '2024-2025',
+            competition: 'Comprehensive Analysis',
+            position: player.position,
+            percentiles: comprehensiveAnalysis.percentiles,
+            strengths: comprehensiveAnalysis.strengths || [],
+            weaknesses: comprehensiveAnalysis.weaknesses || [],
+            overallRating: Math.round(Object.values(comprehensiveAnalysis.percentiles).reduce((a: number, b: number) => a + b, 0) / Object.keys(comprehensiveAnalysis.percentiles).length)
+          });
+          hasReport = true;
         }
         
         res.json({ 
           success: true, 
           hasStats, 
           hasReport,
-          source: 'soccerdata',
-          message: `Successfully refreshed precise data for ${player.name}`
+          source: 'enhanced_soccerdata',
+          analysis: comprehensiveAnalysis,
+          message: `Successfully refreshed comprehensive data for ${player.name}`
         });
       } else {
-        res.status(404).json({ error: "Could not find precise data for this player" });
+        res.status(404).json({ error: "Could not find comprehensive data for this player" });
       }
     } catch (error) {
-      console.error('Refresh precise data error:', error);
-      res.status(500).json({ error: error.message || "Failed to refresh precise data" });
+      console.error('Refresh comprehensive data error:', error);
+      res.status(500).json({ error: error.message || "Failed to refresh comprehensive data" });
     }
   });
 
@@ -292,15 +299,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get available leagues from soccerdata
-  app.get("/api/soccerdata/leagues", async (req, res) => {
+  // Get comprehensive player analysis
+  app.get("/api/players/:id/comprehensive-analysis", async (req, res) => {
     try {
-      await soccerDataService.ensurePythonScriptExists();
-      const leagues = await soccerDataService.getAvailableLeagues();
-      res.json({ leagues });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      const player = await storage.getPlayer(id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      
+      console.log(`Getting comprehensive analysis for: ${player.name}`);
+      
+      await enhancedSoccerDataService.ensurePythonScriptExists();
+      
+      const analysis = await enhancedSoccerDataService.getComprehensivePlayerAnalysis(
+        player.name,
+        player.team,
+        player.league
+      );
+      
+      if (analysis && analysis.success) {
+        res.json(analysis);
+      } else {
+        res.status(404).json({ error: "Comprehensive analysis not available" });
+      }
     } catch (error) {
-      console.error('Error getting available leagues:', error);
-      res.status(500).json({ error: "Failed to get available leagues" });
+      console.error('Error getting comprehensive analysis:', error);
+      res.status(500).json({ error: "Failed to get comprehensive analysis" });
+    }
+  });
+
+  // Get team analysis
+  app.get("/api/teams/:teamName/analysis", async (req, res) => {
+    try {
+      const teamName = req.params.teamName;
+      const league = req.query.league as string;
+      
+      console.log(`Getting team analysis for: ${teamName}`);
+      
+      await enhancedSoccerDataService.ensurePythonScriptExists();
+      
+      const analysis = await enhancedSoccerDataService.getTeamAnalysis(teamName, league);
+      
+      if (analysis && analysis.success) {
+        res.json(analysis);
+      } else {
+        res.status(404).json({ error: "Team analysis not available" });
+      }
+    } catch (error) {
+      console.error('Error getting team analysis:', error);
+      res.status(500).json({ error: "Failed to get team analysis" });
+    }
+  });
+
+  // Get position comparison
+  app.get("/api/players/:id/position-comparison", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      const player = await storage.getPlayer(id);
+      if (!player || !player.position) {
+        return res.status(404).json({ error: "Player or position not found" });
+      }
+      
+      console.log(`Getting position comparison for: ${player.name} (${player.position})`);
+      
+      await enhancedSoccerDataService.ensurePythonScriptExists();
+      
+      const comparison = await enhancedSoccerDataService.getPlayerComparison(
+        player.name,
+        player.position,
+        player.league
+      );
+      
+      if (comparison && comparison.success) {
+        res.json(comparison);
+      } else {
+        res.status(404).json({ error: "Position comparison not available" });
+      }
+    } catch (error) {
+      console.error('Error getting position comparison:', error);
+      res.status(500).json({ error: "Failed to get position comparison" });
     }
   });
 

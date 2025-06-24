@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, RefreshCw, Info } from "lucide-react";
 import type { ScoutingReport } from "@shared/schema";
+import EnhancedHeatmap from "./EnhancedHeatmap";
 
 interface ScoutingReportProps {
   report: ScoutingReport;
@@ -89,14 +92,101 @@ export default function ScoutingReport({ report, playerId }: ScoutingReportProps
 
   return (
     <div className="space-y-6">
-      {/* Header Info */}
-      <div className="mb-6">
-        <p className="text-gray-300 text-sm mb-2">
-          EN COMPARAISON AUX JOUEURS ÉVOLUANT AU MÊME POSTE - SAISON {report.season?.toUpperCase()}
-        </p>
-        <p className="text-gray-400 text-xs">
-          STATISTIQUES PAR 90' & CENTILE
-        </p>
+      {/* Header with Actions */}
+      <Card className="stats-card">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Rapport de Scouting Complet</span>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+              </Button>
+              <Button 
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                className="stats-button"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {isDownloading ? 'Génération...' : 'Télécharger PDF'}
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-stats-accent mb-2">
+                {report.overallRating}/100
+              </div>
+              <div className="text-sm text-gray-400">Note Globale</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-400 mb-2">
+                {report.position}
+              </div>
+              <div className="text-sm text-gray-400">Position Analysée</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-400 mb-2">
+                {report.season}
+              </div>
+              <div className="text-sm text-gray-400">Saison</div>
+            </div>
+          </div>
+          <Progress value={report.overallRating} className="h-4 mt-4" />
+          <p className="text-sm text-gray-400 mt-2">
+            Rapport basé sur l'analyse comparative des performances et données précises
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Performance Heatmap */}
+      <EnhancedHeatmap 
+        data={percentiles} 
+        title="Percentiles Détaillés par Statistique"
+        playerColor="blue"
+      />
+
+      {/* Percentile Stats Display */}
+      <div className="space-y-4">
+        {Object.entries(percentiles).map(([statKey, percentile]) => {
+          const displayName = statDisplayNames[statKey] || statKey;
+          const numericPercentile = typeof percentile === 'number' ? percentile : 0;
+          
+          return (
+            <div key={statKey} className="flex items-center justify-between py-3 border-b border-gray-700/50">
+              <div className="flex-1">
+                <div className="font-medium text-white">{displayName}</div>
+              </div>
+              <div className="flex-1 mx-8">
+                <div className="relative h-6 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(Math.max(numericPercentile, 0), 100)}%`,
+                      background: getPercentileGradient(numericPercentile),
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="w-16 text-right">
+                <Badge
+                  className={`${getPercentileColor(numericPercentile)} text-white font-bold`}
+                  variant="secondary"
+                >
+                  {Math.round(numericPercentile)}
+                </Badge>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Percentile Stats */}

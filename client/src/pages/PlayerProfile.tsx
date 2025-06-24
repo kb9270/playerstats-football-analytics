@@ -231,7 +231,7 @@ export default function PlayerProfile() {
                     ))}
                   </div>
                 ) : scoutingReport ? (
-                  <ScoutingReport report={scoutingReport} />
+                  <ScoutingReport report={scoutingReport} playerId={playerId} />
                 ) : (
                   <div className="text-center text-gray-400 py-8">
                     Rapport de scouting non disponible
