@@ -2,32 +2,27 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 export class TransfermarktApi {
-  private baseUrl = 'https://www.transfermarkt.com';
+  private baseUrl = 'https://transfermarkt-api.fly.dev';
   private headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
   };
 
-  private async makeRequest(url: string, retries = 3): Promise<cheerio.CheerioAPI> {
+  private async makeRequest(url: string, retries = 3): Promise<any> {
     for (let i = 0; i < retries; i++) {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
         
         const response = await axios.get(url, {
           headers: this.headers,
-          timeout: 15000,
-          maxRedirects: 5
+          timeout: 10000,
         });
 
-        return cheerio.load(response.data);
+        return response.data;
       } catch (error) {
         console.log(`Request attempt ${i + 1} failed for ${url}:`, error instanceof Error ? error.message : error);
         if (i === retries - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, 3000 * (i + 1)));
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
       }
     }
     throw new Error('Max retries reached');
@@ -35,46 +30,28 @@ export class TransfermarktApi {
 
   async searchPlayers(query: string): Promise<any[]> {
     try {
-      const searchUrl = `${this.baseUrl}/schnellsuche/ergebnis/schnellsuche?query=${encodeURIComponent(query)}&Spieler_page=1`;
-      const $ = await this.makeRequest(searchUrl);
+      const searchUrl = `${this.baseUrl}/players/search/${encodeURIComponent(query)}`;
+      const data = await this.makeRequest(searchUrl);
       
       const players: any[] = [];
       
-      // Search for player results in the page
-      $('table.items tbody tr').each((index, element) => {
-        const $row = $(element);
-        const $nameCell = $row.find('td.hauptlink a');
-        const $positionCell = $row.find('td').eq(1);
-        const $ageCell = $row.find('td').eq(2);
-        const $teamCell = $row.find('td img[alt]').parent();
-        const $marketValueCell = $row.find('td.rechts.hauptlink');
-
-        if ($nameCell.length > 0) {
-          const name = $nameCell.text().trim();
-          const profileUrl = $nameCell.attr('href');
-          const position = $positionCell.text().trim();
-          const age = $ageCell.text().trim();
-          const team = $teamCell.find('a').text().trim() || $teamCell.text().trim();
-          const marketValue = $marketValueCell.text().trim();
-
-          if (profileUrl && name) {
-            const transfermarktId = this.extractPlayerIdFromUrl(profileUrl);
-            
-            players.push({
-              name,
-              position: position || null,
-              age: age ? parseInt(age) : null,
-              team: team || null,
-              marketValue: this.parseMarketValue(marketValue),
-              transfermarktId,
-              transfermarktUrl: `${this.baseUrl}${profileUrl}`,
-              source: 'transfermarkt'
-            });
-          }
+      if (data && Array.isArray(data.results)) {
+        for (const result of data.results.slice(0, 15)) {
+          players.push({
+            name: result.name,
+            position: result.position?.name || null,
+            age: result.age || null,
+            team: result.club?.name || null,
+            nationality: result.nationality?.name || null,
+            marketValue: result.marketValue || null,
+            transfermarktId: result.id,
+            photoUrl: result.image || null,
+            source: 'transfermarkt'
+          });
         }
-      });
+      }
 
-      return players.slice(0, 15); // Limit results
+      return players;
     } catch (error) {
       console.error('Error searching Transfermarkt:', error);
       return [];
@@ -83,65 +60,26 @@ export class TransfermarktApi {
 
   async getPlayerDetails(transfermarktId: string): Promise<any> {
     try {
-      const playerUrl = `${this.baseUrl}/player/profil/spieler/${transfermarktId}`;
-      const $ = await this.makeRequest(playerUrl);
+      const playerUrl = `${this.baseUrl}/players/${transfermarktId}/profile`;
+      const data = await this.makeRequest(playerUrl);
       
-      const name = $('h1.data-header__headline-wrapper').text().trim();
-      const $infoTable = $('.info-table');
-      
+      if (!data) return null;
+
       const details: any = {
-        name,
+        name: data.name,
+        fullName: data.fullName,
         transfermarktId,
-        transfermarktUrl: playerUrl
+        age: data.age,
+        nationality: data.nationality?.name,
+        position: data.position?.name,
+        team: data.club?.name,
+        league: data.league?.name,
+        marketValue: data.marketValue,
+        height: data.height ? data.height / 100 : null, // Convert cm to meters
+        foot: data.foot,
+        photoUrl: data.image,
+        contractEnd: data.contract?.expires
       };
-
-      // Extract basic info from the info table
-      $infoTable.find('tr').each((index, row) => {
-        const $row = $(row);
-        const label = $row.find('th').text().trim().toLowerCase();
-        const value = $row.find('td').text().trim();
-
-        switch (label) {
-          case 'date of birth:':
-          case 'date de naissance:':
-            const age = this.calculateAge(value);
-            if (age) details.age = age;
-            break;
-          case 'place of birth:':
-          case 'lieu de naissance:':
-            const nationality = this.extractNationality(value);
-            if (nationality) details.nationality = nationality;
-            break;
-          case 'height:':
-          case 'taille:':
-            const height = this.parseHeight(value);
-            if (height) details.height = height;
-            break;
-          case 'position:':
-            details.position = value;
-            break;
-          case 'foot:':
-          case 'pied:':
-            details.foot = value;
-            break;
-          case 'current club:':
-          case 'club actuel:':
-            details.team = value;
-            break;
-        }
-      });
-
-      // Extract market value
-      const marketValueText = $('.market-value').text().trim();
-      if (marketValueText) {
-        details.marketValue = this.parseMarketValue(marketValueText);
-      }
-
-      // Extract photo URL
-      const photoUrl = $('.data-header__profile-image img').attr('src');
-      if (photoUrl) {
-        details.photoUrl = photoUrl;
-      }
 
       return details;
     } catch (error) {

@@ -53,7 +53,7 @@ export class FootballDataScraper {
       
       if (playerData) {
         // Store the player
-        const storedPlayer = await storage.addPlayer(playerData);
+        const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
         // Try to get and store stats from FBref if available
@@ -62,7 +62,7 @@ export class FootballDataScraper {
             const stats = await fbrefApi.getPlayerStats(playerData.fbrefId);
             if (stats.length > 0) {
               for (const statRecord of stats) {
-                await storage.addPlayerStats({
+                await storage.createPlayerStats({
                   ...statRecord,
                   playerId: storedPlayer.id
                 });
@@ -94,7 +94,7 @@ export class FootballDataScraper {
       const stats = await fbrefApi.getPlayerStats(player.fbrefId);
       if (stats.length > 0) {
         for (const statRecord of stats) {
-          await storage.addPlayerStats({
+          await storage.createPlayerStats({
             ...statRecord,
             playerId: player.id
           });

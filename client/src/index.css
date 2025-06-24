@@ -63,21 +63,17 @@
 
   body {
     @apply text-white font-sans antialiased;
-    background-color: hsl(0, 0%, 3.9%);
-    background-image: repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      rgba(255, 255, 255, 0.02) 10px,
-      rgba(255, 255, 255, 0.02) 20px
-    );
+    background: linear-gradient(135deg, hsl(220, 26%, 4%) 0%, hsl(217, 33%, 7%) 50%, hsl(222, 47%, 11%) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 }
 
 @layer components {
   .stats-card {
-    @apply backdrop-blur-sm border border-gray-800 rounded-2xl;
-    background-color: rgba(15, 23, 42, 0.6);
+    @apply backdrop-blur-sm border border-blue-800 rounded-2xl;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.15));
+    border-color: rgba(59, 130, 246, 0.3);
   }
   
   .stats-button {
@@ -98,7 +94,7 @@
   }
   
   .search-result-item {
-    @apply p-4 hover:bg-gray-800 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors;
+    @apply p-4 hover:bg-blue-900/30 cursor-pointer border-b border-blue-800/50 last:border-b-0 transition-colors;
   }
   
   /* Enhanced text contrast for better readability */
