@@ -1,9 +1,11 @@
 import { storage } from "../storage";
 import { fbrefApi } from "./footballApi";
 import { transfermarktApi } from "./transfermarktApi";
+import { optimizedTransfermarktApi } from "./optimizedTransfermarktApi";
 import { fbrefScraper } from "./fbrefScraper";
 import { fbrApi } from "./fbrApi";
 import { aggressiveFbrefMatcher } from "./aggressiveFbrefMatcher";
+import { smartStatsCollector } from "./smartStatsCollector";
 import { aiService } from "./aiService";
 
 export class FootballDataScraper {
@@ -17,33 +19,40 @@ export class FootballDataScraper {
       
       let playerData = null;
       
-      // Try Transfermarkt first for broader search coverage
-      const transfermarktResults = await transfermarktApi.searchPlayers(query);
+      // Use optimized Transfermarkt search with multiple criteria
+      const transfermarktResults = await optimizedTransfermarktApi.searchByMultipleCriteria(query);
       if (transfermarktResults.length > 0) {
         const bestMatch = transfermarktResults[0];
-        console.log(`Found player on Transfermarkt: ${bestMatch.name}`);
+        console.log(`Found player on Optimized Transfermarkt: ${bestMatch.name} (score: ${bestMatch.matchScore})`);
         
         // Get detailed data from Transfermarkt
         if (bestMatch.transfermarktId) {
-          const detailedData = await transfermarktApi.getPlayerDetails(bestMatch.transfermarktId);
+          const detailedData = await optimizedTransfermarktApi.getPlayerDetailsOptimized(bestMatch.transfermarktId);
           if (detailedData) {
             playerData = { ...bestMatch, ...detailedData };
           } else {
             playerData = bestMatch;
           }
+        } else {
+          playerData = bestMatch;
         }
         
-        // Immediately try to find FBref data for this player
+        // Try to find FBref data using aggressive matcher
         if (playerData) {
           try {
-            const fbrefResults = await fbrefScraper.searchPlayer(playerData.name);
-            if (fbrefResults.length > 0) {
-              const fbrefMatch = fbrefResults[0];
-              console.log(`Found matching FBref profile for: ${fbrefMatch.name}`);
-              playerData.fbrefId = fbrefMatch.fbrefId;
+            const fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
+              playerData.name,
+              playerData.team,
+              playerData.nationality,
+              playerData.age
+            );
+            
+            if (fbrefId) {
+              console.log(`Found matching FBref ID: ${fbrefId}`);
+              playerData.fbrefId = fbrefId;
               
               // Get complete FBref profile data
-              const fbrefProfile = await fbrefScraper.getPlayerProfile(fbrefMatch.fbrefId);
+              const fbrefProfile = await fbrefScraper.getPlayerProfile(fbrefId);
               if (fbrefProfile) {
                 playerData = { ...playerData, ...fbrefProfile };
               }
@@ -111,117 +120,17 @@ export class FootballDataScraper {
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
-        // Aggressively try to get FBref data using multiple strategies
-        let fbrefId = playerData.fbrefId;
-        if (!fbrefId) {
-          console.log(`Using aggressive FBref matching for: ${playerData.name}`);
-          try {
-            fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
-              playerData.name,
-              playerData.team,
-              playerData.nationality,
-              playerData.age
-            );
-            
-            if (fbrefId) {
-              console.log(`Aggressive search found FBref ID: ${fbrefId}`);
-              // Update the stored player with fbrefId
-              await storage.updatePlayer(storedPlayer.id, { fbrefId });
-            }
-          } catch (searchError) {
-            console.log('Aggressive FBref search failed:', searchError);
+        // Use smart stats collector for comprehensive data gathering
+        console.log(`Using smart stats collection for: ${playerData.name}`);
+        try {
+          const hasStats = await smartStatsCollector.collectPlayerStats(storedPlayer.id, playerData);
+          if (hasStats) {
+            console.log(`✓ Successfully collected stats for ${playerData.name}`);
+          } else {
+            console.log(`⚠ Could not collect comprehensive stats for ${playerData.name}`);
           }
-        }
-
-        // Try to get and store comprehensive stats from FBref
-        if (fbrefId) {
-          try {
-            console.log(`Fetching FBref stats for: ${playerData.name} (${fbrefId})`);
-            
-            const stats = await fbrefScraper.getPlayerStats(fbrefId);
-            if (stats.length > 0) {
-              console.log(`Found ${stats.length} stat records for ${playerData.name}`);
-              for (const statRecord of stats) {
-                await storage.createPlayerStats({
-                  ...statRecord,
-                  playerId: storedPlayer.id
-                });
-              }
-            }
-            
-            // Get detailed stats for better analysis
-            const detailedStats = await fbrefScraper.getDetailedStats(fbrefId);
-            if (detailedStats && Object.keys(detailedStats).length > 0) {
-              console.log(`Found detailed stats for ${playerData.name}`);
-              
-              // Store passing stats
-              if (detailedStats.passing) {
-                await storage.createPlayerStats({
-                  playerId: storedPlayer.id,
-                  season: '2024-2025',
-                  competition: 'Detailed Passing',
-                  ...detailedStats.passing
-                });
-              }
-              
-              // Store shooting stats
-              if (detailedStats.shooting) {
-                await storage.createPlayerStats({
-                  playerId: storedPlayer.id,
-                  season: '2024-2025',
-                  competition: 'Detailed Shooting',
-                  ...detailedStats.shooting
-                });
-              }
-              
-              // Store defensive stats
-              if (detailedStats.defense) {
-                await storage.createPlayerStats({
-                  playerId: storedPlayer.id,
-                  season: '2024-2025',
-                  competition: 'Detailed Defense',
-                  ...detailedStats.defense
-                });
-              }
-            }
-            
-            // Get and store scouting report with percentiles
-            if (playerData.position) {
-              const percentileData = await fbrefScraper.getPlayerPercentiles(fbrefId, playerData.position);
-              if (percentileData.percentiles && Object.keys(percentileData.percentiles).length > 0) {
-                console.log(`Found percentile data for ${playerData.name}`);
-                await storage.createScoutingReport({
-                  playerId: storedPlayer.id,
-                  season: '2024-2025',
-                  competition: 'All Competitions',
-                  position: playerData.position,
-                  percentiles: percentileData.percentiles,
-                  strengths: this.calculateStrengths(percentileData.percentiles),
-                  weaknesses: this.calculateWeaknesses(percentileData.percentiles),
-                  overallRating: this.calculateOverallRating(percentileData.percentiles)
-                });
-              }
-            }
-          } catch (statsError) {
-            console.log('Could not fetch comprehensive FBref stats:', statsError);
-          }
-        }
-
-        // Try FBR API as backup for stats
-        if (playerData.fbrId) {
-          try {
-            const stats = await fbrApi.getPlayerStats(playerData.fbrId);
-            if (stats) {
-              await storage.createPlayerStats({
-                playerId: storedPlayer.id,
-                season: '2024-2025',
-                competition: 'FBR API',
-                ...stats
-              });
-            }
-          } catch (statsError) {
-            console.log('Could not fetch FBR API stats for player');
-          }
+        } catch (statsError) {
+          console.log('Smart stats collection failed:', statsError);
         }
         
         return storedPlayer;
@@ -243,93 +152,42 @@ export class FootballDataScraper {
 
       let fbrefId = player.fbrefId;
       
-      // If no FBref ID, use aggressive search
-      if (!fbrefId) {
-        console.log(`Using aggressive FBref search for: ${player.name}`);
-        try {
-          fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
-            player.name,
-            player.team,
-            player.nationality,
-            player.age
-          );
-          
-          if (fbrefId) {
-            console.log(`Aggressive search found FBref ID: ${fbrefId} for ${player.name}`);
-            // Update player with fbrefId
-            await storage.updatePlayer(playerId, { fbrefId });
-          }
-        } catch (searchError) {
-          console.log('Aggressive FBref search failed during update:', searchError);
-        }
-      }
-
-      if (!fbrefId) {
-        throw new Error('No FBref ID available for this player');
-      }
-
-      // Update player stats from FBref
-      console.log(`Updating stats for ${player.name} with FBref ID: ${fbrefId}`);
+      // Use smart stats collector for comprehensive update
+      console.log(`Smart update for: ${player.name}`);
       
-      const stats = await fbrefScraper.getPlayerStats(fbrefId);
-      if (stats.length > 0) {
-        console.log(`Found ${stats.length} stat records to update`);
-        for (const statRecord of stats) {
-          await storage.createPlayerStats({
-            ...statRecord,
-            playerId: player.id
-          });
-        }
-      }
-
-      // Update detailed stats
-      const detailedStats = await fbrefScraper.getDetailedStats(fbrefId);
-      if (detailedStats && Object.keys(detailedStats).length > 0) {
-        console.log(`Updating detailed stats for ${player.name}`);
+      const hasStats = await smartStatsCollector.collectPlayerStats(playerId, player);
+      if (!hasStats) {
+        // If smart collection fails, try to at least find FBref ID
+        let fbrefId = player.fbrefId;
         
-        if (detailedStats.passing) {
-          await storage.createPlayerStats({
-            playerId: player.id,
-            season: '2024-2025',
-            competition: 'Updated Passing',
-            ...detailedStats.passing
-          });
-        }
-        
-        if (detailedStats.shooting) {
-          await storage.createPlayerStats({
-            playerId: player.id,
-            season: '2024-2025',
-            competition: 'Updated Shooting',
-            ...detailedStats.shooting
-          });
+        if (!fbrefId) {
+          console.log(`Trying aggressive FBref search for: ${player.name}`);
+          try {
+            fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
+              player.name,
+              player.team,
+              player.nationality,
+              player.age
+            );
+            
+            if (fbrefId) {
+              console.log(`Found FBref ID: ${fbrefId} for ${player.name}`);
+              await storage.updatePlayer(playerId, { fbrefId });
+              
+              // Try again with the new FBref ID
+              const retryHasStats = await smartStatsCollector.collectPlayerStats(playerId, { ...player, fbrefId });
+              if (retryHasStats) {
+                console.log(`✓ Retry successful for ${player.name}`);
+                return;
+              }
+            }
+          } catch (searchError) {
+            console.log('Aggressive search failed during update:', searchError);
+          }
         }
         
-        if (detailedStats.defense) {
-          await storage.createPlayerStats({
-            playerId: player.id,
-            season: '2024-2025',
-            competition: 'Updated Defense',
-            ...detailedStats.defense
-          });
-        }
-      }
-
-      // Update scouting report if position is available
-      if (player.position) {
-        const percentileData = await fbrefScraper.getPlayerPercentiles(fbrefId, player.position);
-        if (percentileData.percentiles && Object.keys(percentileData.percentiles).length > 0) {
-          console.log(`Updating scouting report for ${player.name}`);
-          await storage.createScoutingReport({
-            playerId: player.id,
-            season: '2024-2025',
-            competition: 'Updated Report',
-            position: player.position,
-            percentiles: percentileData.percentiles,
-            strengths: this.calculateStrengths(percentileData.percentiles),
-            weaknesses: this.calculateWeaknesses(percentileData.percentiles),
-            overallRating: this.calculateOverallRating(percentileData.percentiles)
-          });
+        if (!hasStats) {
+          throw new Error('Could not collect any stats for this player');
         }
       }
 
