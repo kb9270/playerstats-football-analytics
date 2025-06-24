@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { scraper } from "./services/scraper";
+import { aiService } from "./services/aiService";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -19,7 +20,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First search in local storage
       const localPlayers = await storage.searchPlayers(q);
       
-      // Return local results immediately to avoid 429 errors
+      // If no local results, try external scraping with enhanced APIs
+      if (localPlayers.length === 0) {
+        try {
+          const scrapedPlayer = await scraper.scrapeAndStorePlayer(q);
+          if (scrapedPlayer) {
+            return res.json([scrapedPlayer]);
+          }
+        } catch (scrapeError) {
+          console.log('External scraping failed, returning local results only');
+        }
+      }
+      
       return res.json(localPlayers);
       
     } catch (error) {
