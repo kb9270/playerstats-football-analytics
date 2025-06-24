@@ -27,17 +27,19 @@ const playerColors = [
 ];
 
 export default function StatsTable({ playerIds }: StatsTableProps) {
-  // Fetch player data and stats for each player
-  const playerQueries = playerIds.map(id => {
+  // Fetch player data and stats for each player - using stable order
+  const playerQueries = playerIds.sort((a, b) => a - b).map(id => {
     const playerQuery = useQuery({
       queryKey: [`/api/players/${id}`],
+      enabled: !!id,
     });
     
     const statsQuery = useQuery({
       queryKey: [`/api/players/${id}/stats`],
+      enabled: !!id,
     });
     
-    return { playerQuery, statsQuery };
+    return { playerQuery, statsQuery, id };
   });
 
   const isLoading = playerQueries.some(({ playerQuery, statsQuery }) => 

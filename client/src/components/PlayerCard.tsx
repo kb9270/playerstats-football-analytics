@@ -21,7 +21,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 player-card p-6 rounded-2xl">
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center space-x-3">
@@ -55,20 +55,20 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
         
         <div className="flex items-center space-x-3">
-          <User className="w-4 h-4 text-gray-400" />
+          <User className="w-4 h-4 text-blue-400" />
           <div>
-            <span className="text-gray-400">Poste:</span>
-            <span className="ml-2 font-medium text-stats-accent">
+            <span className="text-blue-300">Poste:</span>
+            <span className="ml-2 font-medium text-blue-200">
               {player.position || "N/A"}
             </span>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Ruler className="w-4 h-4 text-gray-400" />
+          <Ruler className="w-4 h-4 text-blue-400" />
           <div>
-            <span className="text-gray-400">Taille:</span>
-            <span className="ml-2 font-medium">
+            <span className="text-blue-300">Taille:</span>
+            <span className="ml-2 font-medium text-blue-100">
               {player.height ? `${player.height}M` : "N/A"}
             </span>
           </div>
@@ -77,19 +77,19 @@ export default function PlayerCard({ player }: PlayerCardProps) {
 
       {/* Market Value */}
       {player.marketValue && (
-        <Card className="bg-stats-green/10 border-stats-green/20">
+        <Card className="bg-blue-400/10 border-blue-400/30 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-stats-green mb-1">Valeur Marchande</h4>
-                <div className="text-2xl font-bold text-stats-green">
+                <h4 className="font-semibold text-blue-300 mb-1">Valeur Marchande</h4>
+                <div className="text-2xl font-bold text-blue-200">
                   {formatMarketValue(player.marketValue)}
                 </div>
               </div>
               {player.contractEnd && (
                 <div className="text-right">
-                  <div className="text-sm text-gray-400">Fin de contrat</div>
-                  <div className="font-medium text-stats-accent">
+                  <div className="text-sm text-blue-400">Fin de contrat</div>
+                  <div className="font-medium text-blue-200">
                     {player.contractEnd}
                   </div>
                 </div>

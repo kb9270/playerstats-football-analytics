@@ -61,7 +61,7 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
             setQuery(e.target.value);
             setShowResults(e.target.value.length > 2);
           }}
-          className="w-full px-6 py-4 bg-blue-950/30 border border-blue-400/30 rounded-xl text-blue-100 placeholder-blue-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all pr-16 backdrop-blur-sm"
+          className="w-full px-6 py-4 search-input rounded-xl text-blue-100 placeholder-blue-300 focus:outline-none transition-all pr-16"
         />
         <Button
           type="submit"
@@ -73,7 +73,7 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
 
       {/* Search Results */}
       {showResults && query.length > 2 && (
-        <Card className="absolute top-full left-0 right-0 mt-2 bg-stats-secondary border border-gray-700 rounded-xl z-50 max-h-96 overflow-y-auto">
+        <Card className="absolute top-full left-0 right-0 mt-2 bg-blue-950/60 border border-blue-400/40 rounded-xl z-50 max-h-96 overflow-y-auto backdrop-blur-md">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-4 space-y-4">
@@ -95,8 +95,8 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
                     onClick={() => handlePlayerClick(player)}
                     className="search-result-item flex items-center space-x-3"
                   >
-                    <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 bg-blue-600/40 rounded-full flex items-center justify-center backdrop-blur-sm border border-blue-400/30">
+                      <User className="w-5 h-5 text-blue-300" />
                     </div>
                     <div>
                       <div className="font-medium text-contrast-high">{player.name}</div>

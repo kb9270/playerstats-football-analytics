@@ -1,0 +1,73 @@
+/* Thème bleu clair pour les vignettes et cartes */
+
+/* Override des couleurs principales pour un thème bleu uniforme */
+.stats-card {
+  background: linear-gradient(135deg, 
+    rgba(147, 197, 253, 0.3) 0%, 
+    rgba(96, 165, 250, 0.4) 50%, 
+    rgba(59, 130, 246, 0.35) 100%) !important;
+  border: 1px solid rgba(147, 197, 253, 0.6) !important;
+  box-shadow: 
+    0 8px 32px rgba(96, 165, 250, 0.2),
+    0 4px 16px rgba(147, 197, 253, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Cartes de joueurs avec effet bleu clair */
+.player-card {
+  background: linear-gradient(135deg, 
+    rgba(147, 197, 253, 0.25) 0%, 
+    rgba(96, 165, 250, 0.3) 100%) !important;
+  border: 1px solid rgba(147, 197, 253, 0.5) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Résultats de recherche avec thème bleu */
+.search-result-item {
+  background: linear-gradient(135deg, 
+    rgba(147, 197, 253, 0.1) 0%, 
+    rgba(96, 165, 250, 0.15) 100%) !important;
+  border-bottom: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+
+.search-result-item:hover {
+  background: linear-gradient(135deg, 
+    rgba(147, 197, 253, 0.2) 0%, 
+    rgba(96, 165, 250, 0.25) 100%) !important;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2) !important;
+}
+
+/* Boutons avec thème bleu dégradé */
+.stats-button {
+  background: linear-gradient(135deg, 
+    #3b82f6 0%, 
+    #60a5fa 50%, 
+    #93c5fd 100%) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+}
+
+.stats-button:hover {
+  background: linear-gradient(135deg, 
+    #60a5fa 0%, 
+    #93c5fd 50%, 
+    #bfdbfe 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Zone de recherche avec thème bleu */
+.search-input {
+  background: rgba(30, 58, 138, 0.3) !important;
+  border: 1px solid rgba(147, 197, 253, 0.4) !important;
+  color: #bfdbfe !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.search-input:focus {
+  border-color: rgba(147, 197, 253, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.2) !important;
+}
+
+.search-input::placeholder {
+  color: rgba(147, 197, 253, 0.7) !important;
+}

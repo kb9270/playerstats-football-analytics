@@ -63,7 +63,11 @@
 
   body {
     @apply text-white font-sans antialiased;
-    background: linear-gradient(135deg, hsl(220, 26%, 4%) 0%, hsl(217, 33%, 7%) 50%, hsl(222, 47%, 11%) 100%);
+    background: linear-gradient(135deg, 
+      hsl(220, 45%, 8%) 0%, 
+      hsl(217, 50%, 12%) 30%, 
+      hsl(215, 55%, 16%) 70%, 
+      hsl(213, 60%, 20%) 100%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -71,19 +75,34 @@
 
 @layer components {
   .stats-card {
-    @apply backdrop-blur-sm border border-blue-400 rounded-2xl;
-    background: linear-gradient(135deg, rgba(147, 197, 253, 0.15), rgba(96, 165, 250, 0.25));
-    border-color: rgba(147, 197, 253, 0.4);
-    box-shadow: 0 4px 24px rgba(96, 165, 250, 0.1);
+    @apply backdrop-blur-md border border-blue-300/40 rounded-2xl;
+    background: linear-gradient(135deg, 
+      rgba(147, 197, 253, 0.25) 0%, 
+      rgba(96, 165, 250, 0.35) 50%, 
+      rgba(59, 130, 246, 0.30) 100%);
+    border-color: rgba(147, 197, 253, 0.5);
+    box-shadow: 
+      0 4px 32px rgba(96, 165, 250, 0.15),
+      0 2px 16px rgba(147, 197, 253, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   
   .stats-button {
-    @apply text-white transition-colors duration-200;
-    background-color: hsl(340, 82%, 52%);
+    @apply text-white transition-all duration-200;
+    background: linear-gradient(135deg, 
+      hsl(217, 91%, 60%) 0%, 
+      hsl(213, 93%, 67%) 50%, 
+      hsl(210, 98%, 78%) 100%);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   }
   
   .stats-button:hover {
-    background-color: hsl(346, 87%, 43%);
+    background: linear-gradient(135deg, 
+      hsl(213, 93%, 67%) 0%, 
+      hsl(210, 98%, 78%) 50%, 
+      hsl(207, 100%, 88%) 100%);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
   }
   
   .percentile-bar {
