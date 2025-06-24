@@ -164,13 +164,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid player ID" });
       }
       
+      console.log(`Updating player data for ID: ${id}`);
       await scraper.updatePlayerData(id);
       
       const updatedPlayer = await storage.getPlayer(id);
       res.json(updatedPlayer);
     } catch (error) {
       console.error('Update player error:', error);
-      res.status(500).json({ error: "Failed to update player data" });
+      res.status(500).json({ error: error.message || "Failed to update player data" });
+    }
+  });
+
+  // Force FBref data refresh for a player
+  app.post("/api/players/:id/refresh-fbref", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      const player = await storage.getPlayer(id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      
+      console.log(`Force refreshing FBref data for: ${player.name}`);
+      
+      // Import the enhancer
+      const { fbrefEnhancer } = await import("./services/fbrefEnhancer");
+      
+      // Find FBref ID
+      const fbrefId = await fbrefEnhancer.findPlayerFbrefId(player.name, player.team, player.age);
+      
+      if (fbrefId) {
+        // Update player with FBref ID
+        await storage.updatePlayer(id, { fbrefId });
+        
+        // Get complete stats
+        const hasStats = await fbrefEnhancer.getCompletePlayerStats(fbrefId, id);
+        
+        // Generate scouting report if position is available
+        let hasReport = false;
+        if (player.position) {
+          hasReport = await fbrefEnhancer.generateScoutingReport(fbrefId, id, player.position);
+        }
+        
+        res.json({ 
+          success: true, 
+          fbrefId, 
+          hasStats, 
+          hasReport,
+          message: `Successfully refreshed FBref data for ${player.name}`
+        });
+      } else {
+        res.status(404).json({ error: "Could not find FBref data for this player" });
+      }
+    } catch (error) {
+      console.error('Refresh FBref error:', error);
+      res.status(500).json({ error: error.message || "Failed to refresh FBref data" });
     }
   });
 

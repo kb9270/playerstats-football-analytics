@@ -31,23 +31,29 @@ export class FootballDataScraper {
             playerData = bestMatch;
           }
         }
-      }
-      
-      // Try FBR API for comprehensive data
-      if (!playerData) {
-        const fbrResults = await fbrApi.searchPlayer(query);
-        if (fbrResults.length > 0) {
-          const bestMatch = fbrResults[0];
-          console.log(`Found player on FBR API: ${bestMatch.name}`);
-          
-          const profile = await fbrApi.getPlayerProfile(bestMatch.id);
-          if (profile) {
-            playerData = { ...profile, fbrId: bestMatch.id };
+        
+        // Immediately try to find FBref data for this player
+        if (playerData) {
+          try {
+            const fbrefResults = await fbrefScraper.searchPlayer(playerData.name);
+            if (fbrefResults.length > 0) {
+              const fbrefMatch = fbrefResults[0];
+              console.log(`Found matching FBref profile for: ${fbrefMatch.name}`);
+              playerData.fbrefId = fbrefMatch.fbrefId;
+              
+              // Get complete FBref profile data
+              const fbrefProfile = await fbrefScraper.getPlayerProfile(fbrefMatch.fbrefId);
+              if (fbrefProfile) {
+                playerData = { ...playerData, ...fbrefProfile };
+              }
+            }
+          } catch (fbrefError) {
+            console.log('Could not find FBref data for Transfermarkt player');
           }
         }
       }
-
-      // Try FBref with enhanced scraper as fallback
+      
+      // Try FBref with enhanced scraper as primary fallback
       if (!playerData) {
         const fbrefResults = await fbrefScraper.searchPlayer(query);
         if (fbrefResults.length > 0) {
@@ -57,6 +63,20 @@ export class FootballDataScraper {
           const profile = await fbrefScraper.getPlayerProfile(bestMatch.fbrefId);
           if (profile) {
             playerData = { ...profile, fbrefId: bestMatch.fbrefId };
+          }
+        }
+      }
+
+      // Try FBR API for comprehensive data as secondary fallback
+      if (!playerData) {
+        const fbrResults = await fbrApi.searchPlayer(query);
+        if (fbrResults.length > 0) {
+          const bestMatch = fbrResults[0];
+          console.log(`Found player on FBR API: ${bestMatch.name}`);
+          
+          const profile = await fbrApi.getPlayerProfile(bestMatch.id);
+          if (profile) {
+            playerData = { ...profile, fbrId: bestMatch.id };
           }
         }
       }
@@ -90,28 +110,32 @@ export class FootballDataScraper {
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
-        // Try to get and store comprehensive stats from FBR API first
-        if (playerData.fbrId) {
+        // Aggressively try to get FBref data if we don't have it yet
+        let fbrefId = playerData.fbrefId;
+        if (!fbrefId) {
+          console.log(`Attempting to find FBref ID for: ${playerData.name}`);
           try {
-            const stats = await fbrApi.getPlayerStats(playerData.fbrId);
-            if (stats) {
-              await storage.createPlayerStats({
-                playerId: storedPlayer.id,
-                season: '2024-2025',
-                competition: 'All Competitions',
-                ...stats
-              });
+            const fbrefResults = await fbrefScraper.searchPlayer(playerData.name);
+            if (fbrefResults.length > 0) {
+              fbrefId = fbrefResults[0].fbrefId;
+              console.log(`Found FBref ID: ${fbrefId}`);
+              
+              // Update the stored player with fbrefId
+              await storage.updatePlayer(storedPlayer.id, { fbrefId });
             }
-          } catch (statsError) {
-            console.log('Could not fetch FBR API stats for player');
+          } catch (searchError) {
+            console.log('Could not find FBref ID for player');
           }
         }
 
-        // Try to get and store comprehensive stats from FBref if available
-        if (playerData.fbrefId) {
+        // Try to get and store comprehensive stats from FBref
+        if (fbrefId) {
           try {
-            const stats = await fbrefScraper.getPlayerStats(playerData.fbrefId);
+            console.log(`Fetching FBref stats for: ${playerData.name} (${fbrefId})`);
+            
+            const stats = await fbrefScraper.getPlayerStats(fbrefId);
             if (stats.length > 0) {
+              console.log(`Found ${stats.length} stat records for ${playerData.name}`);
               for (const statRecord of stats) {
                 await storage.createPlayerStats({
                   ...statRecord,
@@ -121,23 +145,46 @@ export class FootballDataScraper {
             }
             
             // Get detailed stats for better analysis
-            const detailedStats = await fbrefScraper.getDetailedStats(playerData.fbrefId);
+            const detailedStats = await fbrefScraper.getDetailedStats(fbrefId);
             if (detailedStats && Object.keys(detailedStats).length > 0) {
-              // Store detailed stats as additional records
+              console.log(`Found detailed stats for ${playerData.name}`);
+              
+              // Store passing stats
+              if (detailedStats.passing) {
+                await storage.createPlayerStats({
+                  playerId: storedPlayer.id,
+                  season: '2024-2025',
+                  competition: 'Detailed Passing',
+                  ...detailedStats.passing
+                });
+              }
+              
+              // Store shooting stats
               if (detailedStats.shooting) {
                 await storage.createPlayerStats({
                   playerId: storedPlayer.id,
                   season: '2024-2025',
-                  competition: 'All Competitions',
+                  competition: 'Detailed Shooting',
                   ...detailedStats.shooting
+                });
+              }
+              
+              // Store defensive stats
+              if (detailedStats.defense) {
+                await storage.createPlayerStats({
+                  playerId: storedPlayer.id,
+                  season: '2024-2025',
+                  competition: 'Detailed Defense',
+                  ...detailedStats.defense
                 });
               }
             }
             
             // Get and store scouting report with percentiles
             if (playerData.position) {
-              const percentileData = await fbrefScraper.getPlayerPercentiles(playerData.fbrefId, playerData.position);
+              const percentileData = await fbrefScraper.getPlayerPercentiles(fbrefId, playerData.position);
               if (percentileData.percentiles && Object.keys(percentileData.percentiles).length > 0) {
+                console.log(`Found percentile data for ${playerData.name}`);
                 await storage.createScoutingReport({
                   playerId: storedPlayer.id,
                   season: '2024-2025',
@@ -151,7 +198,24 @@ export class FootballDataScraper {
               }
             }
           } catch (statsError) {
-            console.log('Could not fetch comprehensive stats for player');
+            console.log('Could not fetch comprehensive FBref stats:', statsError);
+          }
+        }
+
+        // Try FBR API as backup for stats
+        if (playerData.fbrId) {
+          try {
+            const stats = await fbrApi.getPlayerStats(playerData.fbrId);
+            if (stats) {
+              await storage.createPlayerStats({
+                playerId: storedPlayer.id,
+                season: '2024-2025',
+                competition: 'FBR API',
+                ...stats
+              });
+            }
+          } catch (statsError) {
+            console.log('Could not fetch FBR API stats for player');
           }
         }
         
@@ -168,13 +232,39 @@ export class FootballDataScraper {
   async updatePlayerData(playerId: number): Promise<void> {
     try {
       const player = await storage.getPlayer(playerId);
-      if (!player || !player.fbrefId) {
-        throw new Error('Player not found or missing FBref ID');
+      if (!player) {
+        throw new Error('Player not found');
       }
 
-      // Update player stats
-      const stats = await fbrefScraper.getPlayerStats(player.fbrefId);
+      let fbrefId = player.fbrefId;
+      
+      // If no FBref ID, try to find one
+      if (!fbrefId) {
+        console.log(`Searching for FBref ID for player: ${player.name}`);
+        try {
+          const fbrefResults = await fbrefScraper.searchPlayer(player.name);
+          if (fbrefResults.length > 0) {
+            fbrefId = fbrefResults[0].fbrefId;
+            console.log(`Found FBref ID: ${fbrefId} for ${player.name}`);
+            
+            // Update player with fbrefId
+            await storage.updatePlayer(playerId, { fbrefId });
+          }
+        } catch (searchError) {
+          console.log('Could not find FBref ID during update');
+        }
+      }
+
+      if (!fbrefId) {
+        throw new Error('No FBref ID available for this player');
+      }
+
+      // Update player stats from FBref
+      console.log(`Updating stats for ${player.name} with FBref ID: ${fbrefId}`);
+      
+      const stats = await fbrefScraper.getPlayerStats(fbrefId);
       if (stats.length > 0) {
+        console.log(`Found ${stats.length} stat records to update`);
         for (const statRecord of stats) {
           await storage.createPlayerStats({
             ...statRecord,
@@ -182,6 +272,59 @@ export class FootballDataScraper {
           });
         }
       }
+
+      // Update detailed stats
+      const detailedStats = await fbrefScraper.getDetailedStats(fbrefId);
+      if (detailedStats && Object.keys(detailedStats).length > 0) {
+        console.log(`Updating detailed stats for ${player.name}`);
+        
+        if (detailedStats.passing) {
+          await storage.createPlayerStats({
+            playerId: player.id,
+            season: '2024-2025',
+            competition: 'Updated Passing',
+            ...detailedStats.passing
+          });
+        }
+        
+        if (detailedStats.shooting) {
+          await storage.createPlayerStats({
+            playerId: player.id,
+            season: '2024-2025',
+            competition: 'Updated Shooting',
+            ...detailedStats.shooting
+          });
+        }
+        
+        if (detailedStats.defense) {
+          await storage.createPlayerStats({
+            playerId: player.id,
+            season: '2024-2025',
+            competition: 'Updated Defense',
+            ...detailedStats.defense
+          });
+        }
+      }
+
+      // Update scouting report if position is available
+      if (player.position) {
+        const percentileData = await fbrefScraper.getPlayerPercentiles(fbrefId, player.position);
+        if (percentileData.percentiles && Object.keys(percentileData.percentiles).length > 0) {
+          console.log(`Updating scouting report for ${player.name}`);
+          await storage.createScoutingReport({
+            playerId: player.id,
+            season: '2024-2025',
+            competition: 'Updated Report',
+            position: player.position,
+            percentiles: percentileData.percentiles,
+            strengths: this.calculateStrengths(percentileData.percentiles),
+            weaknesses: this.calculateWeaknesses(percentileData.percentiles),
+            overallRating: this.calculateOverallRating(percentileData.percentiles)
+          });
+        }
+      }
+
+      console.log(`Successfully updated data for ${player.name}`);
     } catch (error) {
       console.error('Error updating player data:', error);
       throw error;
