@@ -20,27 +20,37 @@ const statCategories = [
 ];
 
 const playerColors = [
-  "text-stats-accent",
-  "text-stats-blue", 
-  "text-stats-green",
-  "text-stats-yellow"
+  "rotating-color-1", // Violet
+  "rotating-color-2", // Jaune  
+  "rotating-color-3", // Rouge
+  "rotating-color-4", // Bleu
+  "rotating-color-5"  // Vert
 ];
 
 export default function StatsTable({ playerIds }: StatsTableProps) {
-  // Fetch player data and stats for each player - using stable order
-  const playerQueries = playerIds.sort((a, b) => a - b).map(id => {
+  // Ensure stable order and consistent queries
+  const sortedPlayerIds = [...playerIds].sort((a, b) => a - b);
+  
+  const playerQueries = sortedPlayerIds.map(id => {
     const playerQuery = useQuery({
       queryKey: [`/api/players/${id}`],
-      enabled: !!id,
+      enabled: !!id && id > 0,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     });
     
     const statsQuery = useQuery({
       queryKey: [`/api/players/${id}/stats`],
-      enabled: !!id,
+      enabled: !!id && id > 0,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     });
     
     return { playerQuery, statsQuery, id };
   });
+
+  // Check if we have valid data
+  const hasValidData = playerQueries.some(({ playerQuery }) => 
+    playerQuery.data && !playerQuery.isError
+  );
 
   const isLoading = playerQueries.some(({ playerQuery, statsQuery }) => 
     playerQuery.isLoading || statsQuery.isLoading
@@ -57,6 +67,14 @@ export default function StatsTable({ playerIds }: StatsTableProps) {
             ))}
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (!hasValidData && !isLoading) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-400">Aucune donnée disponible pour la comparaison</p>
       </div>
     );
   }

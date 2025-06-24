@@ -8,6 +8,14 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player }: PlayerCardProps) {
+  // Generate a color based on player ID for consistency
+  const getPlayerColor = (playerId: number) => {
+    const colors = ['rotating-color-1', 'rotating-color-2', 'rotating-color-3', 'rotating-color-4', 'rotating-color-5'];
+    return colors[playerId % colors.length];
+  };
+
+  const playerColor = getPlayerColor(player.id);
+
   const formatMarketValue = (value: number | null) => {
     if (!value) return "N/A";
     
@@ -25,10 +33,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center space-x-3">
-          <MapPin className="w-4 h-4 text-blue-400" />
+          <MapPin className={`w-4 h-4 ${playerColor}`} />
           <div>
             <span className="text-blue-300">Club:</span>
-            <span className="ml-2 font-medium text-blue-100">{player.team || "N/A"}</span>
+            <span className={`ml-2 font-medium ${playerColor}`}>{player.team || "N/A"}</span>
           </div>
         </div>
         
@@ -37,38 +45,38 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
         
         <div className="flex items-center space-x-3">
-          <Calendar className="w-4 h-4 text-blue-400" />
+          <Calendar className={`w-4 h-4 ${playerColor}`} />
           <div>
             <span className="text-blue-300">Âge:</span>
-            <span className="ml-2 font-medium text-blue-200">
+            <span className={`ml-2 font-medium ${playerColor}`}>
               {player.age ? `${player.age} ANS` : "N/A"}
             </span>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Flag className="w-4 h-4 text-blue-400" />
+          <Flag className={`w-4 h-4 ${playerColor}`} />
           <div>
             <span className="text-blue-300">Nationalité:</span>
-            <span className="ml-2 font-medium text-blue-100">{player.nationality || "N/A"}</span>
+            <span className={`ml-2 font-medium ${playerColor}`}>{player.nationality || "N/A"}</span>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <User className="w-4 h-4 text-blue-400" />
+          <User className={`w-4 h-4 ${playerColor}`} />
           <div>
             <span className="text-blue-300">Poste:</span>
-            <span className="ml-2 font-medium text-blue-200">
+            <span className={`ml-2 font-medium ${playerColor}`}>
               {player.position || "N/A"}
             </span>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Ruler className="w-4 h-4 text-blue-400" />
+          <Ruler className={`w-4 h-4 ${playerColor}`} />
           <div>
             <span className="text-blue-300">Taille:</span>
-            <span className="ml-2 font-medium text-blue-100">
+            <span className={`ml-2 font-medium ${playerColor}`}>
               {player.height ? `${player.height}M` : "N/A"}
             </span>
           </div>
@@ -81,15 +89,15 @@ export default function PlayerCard({ player }: PlayerCardProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-blue-300 mb-1">Valeur Marchande</h4>
-                <div className="text-2xl font-bold text-blue-200">
+                <h4 className={`font-semibold ${playerColor} mb-1`}>Valeur Marchande</h4>
+                <div className={`text-2xl font-bold ${playerColor}`}>
                   {formatMarketValue(player.marketValue)}
                 </div>
               </div>
               {player.contractEnd && (
                 <div className="text-right">
                   <div className="text-sm text-blue-400">Fin de contrat</div>
-                  <div className="font-medium text-blue-200">
+                  <div className={`font-medium ${playerColor}`}>
                     {player.contractEnd}
                   </div>
                 </div>

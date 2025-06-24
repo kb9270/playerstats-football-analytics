@@ -2,6 +2,7 @@ import { storage } from "../storage";
 import { fbrefApi } from "./footballApi";
 import { transfermarktApi } from "./transfermarktApi";
 import { fbrefScraper } from "./fbrefScraper";
+import { fbrApi } from "./fbrApi";
 import { aiService } from "./aiService";
 
 export class FootballDataScraper {
@@ -32,7 +33,21 @@ export class FootballDataScraper {
         }
       }
       
-      // Try FBref with enhanced scraper as fallback/enhancement
+      // Try FBR API for comprehensive data
+      if (!playerData) {
+        const fbrResults = await fbrApi.searchPlayer(query);
+        if (fbrResults.length > 0) {
+          const bestMatch = fbrResults[0];
+          console.log(`Found player on FBR API: ${bestMatch.name}`);
+          
+          const profile = await fbrApi.getPlayerProfile(bestMatch.id);
+          if (profile) {
+            playerData = { ...profile, fbrId: bestMatch.id };
+          }
+        }
+      }
+
+      // Try FBref with enhanced scraper as fallback
       if (!playerData) {
         const fbrefResults = await fbrefScraper.searchPlayer(query);
         if (fbrefResults.length > 0) {
@@ -75,6 +90,23 @@ export class FootballDataScraper {
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
+        // Try to get and store comprehensive stats from FBR API first
+        if (playerData.fbrId) {
+          try {
+            const stats = await fbrApi.getPlayerStats(playerData.fbrId);
+            if (stats) {
+              await storage.createPlayerStats({
+                playerId: storedPlayer.id,
+                season: '2024-2025',
+                competition: 'All Competitions',
+                ...stats
+              });
+            }
+          } catch (statsError) {
+            console.log('Could not fetch FBR API stats for player');
+          }
+        }
+
         // Try to get and store comprehensive stats from FBref if available
         if (playerData.fbrefId) {
           try {
