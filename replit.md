@@ -137,6 +137,9 @@ This is a full-stack web application for football player analysis and comparison
 - June 24, 2025: Enhanced scouting reports with detailed analysis and performance metrics
 - June 24, 2025: Implemented multi-source data collection with intelligent fallbacks
 - June 24, 2025: Added downloadable PDF reports with complete player analysis
+- June 24, 2025: Implemented centralized rate limiting system to prevent 429 errors
+- June 24, 2025: Fixed PDF generation with improved Puppeteer configuration
+- June 24, 2025: Added queue management for API requests with automatic delays
 
 ## User Preferences
 

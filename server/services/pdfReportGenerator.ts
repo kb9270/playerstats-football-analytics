@@ -4,13 +4,14 @@ import * as path from 'path';
 
 export class PdfReportGenerator {
   async generateScoutingReport(playerData: any, stats: any, scoutingReport: any): Promise<Buffer> {
+    let browser = null;
     try {
       console.log(`Generating PDF report for ${playerData.name}`);
       
       const htmlContent = this.generateReportHTML(playerData, stats, scoutingReport);
       
-      const browser = await puppeteer.launch({
-        headless: true,
+      browser = await puppeteer.launch({
+        headless: 'new',
         args: [
           '--no-sandbox', 
           '--disable-setuid-sandbox',
@@ -18,30 +19,55 @@ export class PdfReportGenerator {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        timeout: 60000 // 60 secondes timeout
       });
       
       const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      // Set viewport and user agent
+      await page.setViewport({ width: 1200, height: 800 });
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      
+      // Set content with longer timeout
+      await page.setContent(htmlContent, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000
+      });
+      
+      // Wait a bit more for fonts and styles to load
+      await page.waitForTimeout(2000);
       
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: false,
         margin: {
           top: '20mm',
           right: '15mm',
           bottom: '20mm',
           left: '15mm'
-        }
+        },
+        timeout: 30000
       });
       
-      await browser.close();
+      console.log(`PDF generated successfully for ${playerData.name}, size: ${pdfBuffer.length} bytes`);
       
       return pdfBuffer;
     } catch (error) {
       console.error('Error generating PDF report:', error);
-      throw error;
+      throw new Error(`PDF generation failed: ${error.message}`);
+    } finally {
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
     }
   }
 

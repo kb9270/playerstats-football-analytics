@@ -1,6 +1,7 @@
 import { fbrefScraper } from './fbrefScraper';
 import { fbrApi } from './fbrApi';
 import { storage } from '../storage';
+import { rateLimitManager } from './rateLimitManager';
 
 export class SmartStatsCollector {
   private requestQueue: Array<() => Promise<any>> = [];
@@ -49,7 +50,7 @@ export class SmartStatsCollector {
   
   private async getFbrefStats(playerId: number, fbrefId: string, playerData: any): Promise<boolean> {
     try {
-      // Add to queue to avoid rate limiting
+      // Use rate limit manager for FBref requests
       return await this.addToQueue(async () => {
         const stats = await fbrefScraper.getPlayerStats(fbrefId);
         
@@ -87,7 +88,7 @@ export class SmartStatsCollector {
         }
         
         return false;
-      });
+      }, 'fbref');
     } catch (error) {
       console.log('FBref stats collection failed:', error);
       return false;
@@ -318,41 +319,9 @@ export class SmartStatsCollector {
     return Number(rating.toFixed(1));
   }
   
-  private async addToQueue<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.requestQueue.push(async () => {
-        try {
-          const result = await fn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
-      
-      this.processQueue();
-    });
-  }
-  
-  private async processQueue(): Promise<void> {
-    if (this.processing || this.requestQueue.length === 0) return;
-    
-    this.processing = true;
-    
-    while (this.requestQueue.length > 0) {
-      const request = this.requestQueue.shift();
-      if (request) {
-        try {
-          await request();
-        } catch (error) {
-          console.log('Queued request failed:', error);
-        }
-        
-        // Rate limiting delay
-        await new Promise(resolve => setTimeout(resolve, this.rateLimitDelay));
-      }
-    }
-    
-    this.processing = false;
+  private async addToQueue<T>(fn: () => Promise<T>, serviceName: string = 'default'): Promise<T> {
+    // Use the centralized rate limit manager instead of local queue
+    return rateLimitManager.executeWithRateLimit(serviceName, fn);
   }
 }
 

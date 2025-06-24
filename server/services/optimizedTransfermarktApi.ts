@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { rateLimitManager } from './rateLimitManager';
 
 export class OptimizedTransfermarktApi {
   private baseUrl = 'https://transfermarkt-api.fly.dev';
@@ -15,30 +16,38 @@ export class OptimizedTransfermarktApi {
       return this.cache.get(url);
     }
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        console.log(`Transfermarkt API request attempt ${attempt}: ${url}`);
-        
-        const response = await axios.get(url, {
-          headers: this.headers,
-          timeout: 15000,
-        });
+    return rateLimitManager.executeWithRateLimit('transfermarkt', async () => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          console.log(`Transfermarkt API request attempt ${attempt}: ${url}`);
+          
+          const response = await axios.get(url, {
+            headers: this.headers,
+            timeout: 15000,
+          });
 
-        // Cache successful responses
-        this.cache.set(url, response.data);
-        
-        return response.data;
-      } catch (error) {
-        console.log(`Attempt ${attempt} failed:`, error.message);
-        
-        if (attempt === retries) {
-          throw error;
+          // Cache successful responses
+          this.cache.set(url, response.data);
+          
+          return response.data;
+        } catch (error) {
+          const status = error.response?.status;
+          console.log(`Attempt ${attempt} failed (${status}):`, error.message);
+          
+          if (status === 429) {
+            const delay = 3000 * attempt; // 3s, 6s, 9s...
+            console.log(`Rate limited, waiting ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else if (attempt === retries) {
+            throw error;
+          } else {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          }
         }
-        
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
-    }
+      
+      throw new Error('All Transfermarkt requests failed');
+    });
   }
 
   async searchPlayersOptimized(query: string): Promise<any[]> {
