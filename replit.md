@@ -116,7 +116,11 @@ This is a full-stack web application for football player analysis and comparison
 - **Workflow automation** for development and deployment
 
 ## Changelog
-- June 24, 2025. Initial setup
+- June 24, 2025: Initial setup with full-stack architecture
+- June 24, 2025: Migrated to PostgreSQL database with authentic player data
+- June 24, 2025: Added Teams and Leagues pages with comprehensive search functionality
+- June 24, 2025: Enhanced heatmap visualization with realistic position-based data
+- June 24, 2025: Fixed text contrast issues for better readability
 
 ## User Preferences
 
