@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { scraper } from "./services/scraper";
+import { pdfReportGenerator } from "./services/pdfReportGenerator";
+import { soccerDataService } from "./services/soccerDataService";
 import { aiService } from "./services/aiService";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
@@ -175,8 +177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Force FBref data refresh for a player
-  app.post("/api/players/:id/refresh-fbref", async (req, res) => {
+  // Force precise data refresh using soccerdata
+  app.post("/api/players/:id/refresh-precise", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -188,64 +190,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Player not found" });
       }
       
-      console.log(`Force refreshing FBref data for: ${player.name}`);
+      console.log(`Force refreshing precise data for: ${player.name}`);
       
-      // Import the aggressive matcher
-      const { aggressiveFbrefMatcher } = await import("./services/aggressiveFbrefMatcher");
+      // Ensure Python script exists
+      await soccerDataService.ensurePythonScriptExists();
       
-      // Find FBref ID using aggressive strategies
-      const fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
-        player.name, 
-        player.team, 
-        player.nationality, 
-        player.age
+      // Get detailed stats from soccerdata
+      const detailedStats = await soccerDataService.getPlayerDetailedStats(
+        player.name,
+        player.team,
+        player.league
       );
       
-      if (fbrefId) {
-        // Update player with FBref ID
-        await storage.updatePlayer(id, { fbrefId });
+      let hasStats = false;
+      let hasReport = false;
+      
+      if (detailedStats && detailedStats.success) {
+        // Store precise stats
+        await storage.createPlayerStats({
+          playerId: id,
+          season: '2024-2025',
+          competition: 'SoccerData Precise',
+          ...detailedStats.player_stats,
+          source: 'soccerdata'
+        });
+        hasStats = true;
         
-        // Get complete stats using scraper
-        let hasStats = false;
-        try {
-          const stats = await scraper.getPlayerStats(fbrefId);
-          if (stats && stats.length > 0) {
-            for (const statRecord of stats) {
-              await storage.createPlayerStats({
-                ...statRecord,
-                playerId: id
-              });
-            }
-            hasStats = true;
-          }
-        } catch (statsError) {
-          console.log('Could not get stats during refresh');
-        }
-        
-        // Generate scouting report if position is available
-        let hasReport = false;
+        // Get performance analysis if position available
         if (player.position) {
-          try {
-            await scraper.updatePlayerData(id);
+          const performanceAnalysis = await soccerDataService.getPlayerPerformanceAnalysis(
+            player.name,
+            player.position
+          );
+          
+          if (performanceAnalysis && performanceAnalysis.success) {
+            await storage.createScoutingReport({
+              playerId: id,
+              season: '2024-2025',
+              competition: 'SoccerData Analysis',
+              position: player.position,
+              percentiles: performanceAnalysis.percentiles,
+              strengths: scraper.calculateStrengths(performanceAnalysis.percentiles),
+              weaknesses: scraper.calculateWeaknesses(performanceAnalysis.percentiles),
+              overallRating: scraper.calculateOverallRating(performanceAnalysis.percentiles)
+            });
             hasReport = true;
-          } catch (reportError) {
-            console.log('Could not generate scouting report during refresh');
           }
         }
         
         res.json({ 
           success: true, 
-          fbrefId, 
           hasStats, 
           hasReport,
-          message: `Successfully refreshed FBref data for ${player.name}`
+          source: 'soccerdata',
+          message: `Successfully refreshed precise data for ${player.name}`
         });
       } else {
-        res.status(404).json({ error: "Could not find FBref data for this player" });
+        res.status(404).json({ error: "Could not find precise data for this player" });
       }
     } catch (error) {
-      console.error('Refresh FBref error:', error);
-      res.status(500).json({ error: error.message || "Failed to refresh FBref data" });
+      console.error('Refresh precise data error:', error);
+      res.status(500).json({ error: error.message || "Failed to refresh precise data" });
+    }
+  });
+
+  // Generate PDF scouting report
+  app.get("/api/players/:id/report/pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      const player = await storage.getPlayer(id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      
+      console.log(`Generating PDF report for: ${player.name}`);
+      
+      // Get player stats and scouting report
+      const stats = await storage.getPlayerStats(id);
+      const scoutingReport = await storage.getScoutingReport(id, '2024-2025');
+      
+      if (!scoutingReport) {
+        return res.status(404).json({ error: "No scouting report available for this player" });
+      }
+      
+      // Generate PDF
+      const pdfBuffer = await pdfReportGenerator.generateScoutingReport(player, stats, scoutingReport);
+      
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rapport-${player.name.replace(/\s+/g, '-')}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      res.status(500).json({ error: "Failed to generate PDF report" });
+    }
+  });
+
+  // Get available leagues from soccerdata
+  app.get("/api/soccerdata/leagues", async (req, res) => {
+    try {
+      await soccerDataService.ensurePythonScriptExists();
+      const leagues = await soccerDataService.getAvailableLeagues();
+      res.json({ leagues });
+    } catch (error) {
+      console.error('Error getting available leagues:', error);
+      res.status(500).json({ error: "Failed to get available leagues" });
     }
   });
 

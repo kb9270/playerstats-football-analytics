@@ -6,9 +6,56 @@ import type { ScoutingReport } from "@shared/schema";
 
 interface ScoutingReportProps {
   report: ScoutingReport;
+  playerId: number;
 }
 
-export default function ScoutingReport({ report }: ScoutingReportProps) {
+export default function ScoutingReport({ report, playerId }: ScoutingReportProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch(`/api/players/${playerId}/refresh-precise`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        window.location.reload(); // Refresh to show new data
+      } else {
+        console.error('Failed to refresh data');
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`/api/players/${playerId}/report/pdf`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport-joueur-${playerId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error('Failed to download PDF');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   const percentiles = report.percentiles as Record<string, number>;
   
   // Map of stat keys to display names

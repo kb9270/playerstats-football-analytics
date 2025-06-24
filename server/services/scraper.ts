@@ -6,6 +6,7 @@ import { fbrefScraper } from "./fbrefScraper";
 import { fbrApi } from "./fbrApi";
 import { aggressiveFbrefMatcher } from "./aggressiveFbrefMatcher";
 import { smartStatsCollector } from "./smartStatsCollector";
+import { soccerDataService } from "./soccerDataService";
 import { aiService } from "./aiService";
 
 export class FootballDataScraper {
@@ -120,7 +121,59 @@ export class FootballDataScraper {
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
-        // Use smart stats collector for comprehensive data gathering
+        // Ensure Python script exists
+        await soccerDataService.ensurePythonScriptExists();
+
+        // Use soccerdata for precise statistics
+        console.log(`Using soccerdata for precise stats: ${playerData.name}`);
+        try {
+          const soccerDataStats = await soccerDataService.getPlayerDetailedStats(
+            playerData.name,
+            playerData.team,
+            playerData.league
+          );
+
+          if (soccerDataStats && soccerDataStats.success) {
+            console.log(`✓ Got precise soccerdata stats for ${playerData.name}`);
+            
+            // Store soccerdata stats
+            await storage.createPlayerStats({
+              playerId: storedPlayer.id,
+              season: '2024-2025',
+              competition: 'SoccerData Precise',
+              ...soccerDataStats.player_stats,
+              source: 'soccerdata'
+            });
+
+            // Get performance analysis
+            if (playerData.position) {
+              const performanceAnalysis = await soccerDataService.getPlayerPerformanceAnalysis(
+                playerData.name,
+                playerData.position
+              );
+
+              if (performanceAnalysis && performanceAnalysis.success) {
+                console.log(`✓ Got performance analysis for ${playerData.name}`);
+                
+                // Create comprehensive scouting report
+                await storage.createScoutingReport({
+                  playerId: storedPlayer.id,
+                  season: '2024-2025',
+                  competition: 'SoccerData Analysis',
+                  position: playerData.position,
+                  percentiles: performanceAnalysis.percentiles,
+                  strengths: this.calculateStrengths(performanceAnalysis.percentiles),
+                  weaknesses: this.calculateWeaknesses(performanceAnalysis.percentiles),
+                  overallRating: this.calculateOverallRating(performanceAnalysis.percentiles)
+                });
+              }
+            }
+          }
+        } catch (soccerDataError) {
+          console.log('SoccerData collection failed, falling back to smart collector:', soccerDataError);
+        }
+
+        // Use smart stats collector as fallback
         console.log(`Using smart stats collection for: ${playerData.name}`);
         try {
           const hasStats = await smartStatsCollector.collectPlayerStats(storedPlayer.id, playerData);
