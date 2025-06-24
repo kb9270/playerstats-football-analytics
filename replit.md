@@ -125,11 +125,18 @@ This is a full-stack web application for football player analysis and comparison
 - June 24, 2025: Added comprehensive fallback system for player data
 - June 24, 2025: Created Git repository with professional documentation
 - June 24, 2025: Finalized project structure ready for GitHub deployment
+- January 1, 2025: Migrated from Replit Agent to standard Replit environment
+- January 1, 2025: Integrated Transfermarkt API (transfermarkt-api.fly.dev) for global player search
+- January 1, 2025: Enhanced UI with blue color scheme and improved text contrast
+- January 1, 2025: Fixed storage methods and database integration
 - June 24, 2025: Successfully migrated from Replit Agent to standard Replit environment
 - June 24, 2025: Enhanced search system with Transfermarkt integration for broader player coverage
 - June 24, 2025: Improved text contrast across the entire application for better readability
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language (French)
+- Design preference: Blue color scheme over white/gray
+- Search functionality: Complete Transfermarkt integration for global player coverage
+- Text contrast: Enhanced readability with text shadows
 Preferred features: Search functionality covering all professional players from Transfermarkt, better text contrast for readability.
