@@ -19,19 +19,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First search in local storage
       const localPlayers = await storage.searchPlayers(q);
       
-      // If we have local results, return them
-      if (localPlayers.length > 0) {
-        return res.json(localPlayers);
-      }
-      
-      // If no local results, scrape from external APIs
-      try {
-        const scrapedPlayer = await scraper.scrapeAndStorePlayer(q);
-        return res.json([scrapedPlayer]);
-      } catch (scrapeError) {
-        console.error('Scraping error:', scrapeError);
-        return res.status(404).json({ error: "No players found" });
-      }
+      // Return local results immediately to avoid 429 errors
+      return res.json(localPlayers);
       
     } catch (error) {
       console.error('Search error:', error);

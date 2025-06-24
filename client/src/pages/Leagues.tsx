@@ -23,8 +23,12 @@ interface League {
 export default function Leagues() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock league data - in real app this would come from API
-  const leagues: League[] = [
+  const { data: leagues = [], isLoading } = useQuery({
+    queryKey: ['/api/leagues'],
+  });
+
+  // Additional mock leagues for demonstration
+  const mockLeagues: League[] = [
     {
       id: 1,
       name: "Ligue 1",
@@ -105,7 +109,8 @@ export default function Leagues() {
     }
   ];
 
-  const filteredLeagues = leagues.filter(league =>
+  const allLeagues = [...leagues, ...mockLeagues];
+  const filteredLeagues = allLeagues.filter(league =>
     league.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     league.country.toLowerCase().includes(searchQuery.toLowerCase())
   );

@@ -21,8 +21,12 @@ interface Team {
 export default function Teams() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Mock team data - in real app this would come from API
-  const teams: Team[] = [
+  const { data: teams = [], isLoading } = useQuery({
+    queryKey: ['/api/teams'],
+  });
+
+  // Additional mock teams for demonstration
+  const mockTeams: Team[] = [
     {
       id: 1,
       name: "FC Nantes",
@@ -69,7 +73,8 @@ export default function Teams() {
     }
   ];
 
-  const filteredTeams = teams.filter(team =>
+  const allTeams = [...teams, ...mockTeams];
+  const filteredTeams = allTeams.filter(team =>
     team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.league.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.country.toLowerCase().includes(searchQuery.toLowerCase())

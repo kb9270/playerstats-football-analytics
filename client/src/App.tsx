@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import PlayerProfile from "@/pages/PlayerProfile";
 import Comparison from "@/pages/Comparison";
+import Teams from "@/pages/Teams";
+import Leagues from "@/pages/Leagues";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +16,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/player/:id" component={PlayerProfile} />
       <Route path="/comparison/:id?" component={Comparison} />
+      <Route path="/teams" component={Teams} />
+      <Route path="/leagues" component={Leagues} />
       <Route component={NotFound} />
     </Switch>
   );
