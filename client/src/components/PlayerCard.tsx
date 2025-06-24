@@ -1,0 +1,124 @@
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { User, Calendar, MapPin, Ruler, Flag } from "lucide-react";
+import type { Player } from "@shared/schema";
+
+interface PlayerCardProps {
+  player: Player;
+}
+
+export default function PlayerCard({ player }: PlayerCardProps) {
+  const formatMarketValue = (value: number | null) => {
+    if (!value) return "N/A";
+    
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M€`;
+    } else if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)}K€`;
+    }
+    
+    return `${value}€`;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Basic Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center space-x-3">
+          <MapPin className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-gray-400">Club:</span>
+            <span className="ml-2 font-medium">{player.team || "N/A"}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <Badge variant="outline">{player.league || "N/A"}</Badge>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-gray-400">Âge:</span>
+            <span className="ml-2 font-medium text-stats-accent">
+              {player.age ? `${player.age} ANS` : "N/A"}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <Flag className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-gray-400">Nationalité:</span>
+            <span className="ml-2 font-medium">{player.nationality || "N/A"}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <User className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-gray-400">Poste:</span>
+            <span className="ml-2 font-medium text-stats-accent">
+              {player.position || "N/A"}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <Ruler className="w-4 h-4 text-gray-400" />
+          <div>
+            <span className="text-gray-400">Taille:</span>
+            <span className="ml-2 font-medium">
+              {player.height ? `${player.height}M` : "N/A"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Market Value */}
+      {player.marketValue && (
+        <Card className="bg-stats-green/10 border-stats-green/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-stats-green mb-1">Valeur Marchande</h4>
+                <div className="text-2xl font-bold text-stats-green">
+                  {formatMarketValue(player.marketValue)}
+                </div>
+              </div>
+              {player.contractEnd && (
+                <div className="text-right">
+                  <div className="text-sm text-gray-400">Fin de contrat</div>
+                  <div className="font-medium text-stats-accent">
+                    {player.contractEnd}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Physical Attributes */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="bg-stats-dark/30 border-gray-700">
+          <CardContent className="p-4 text-center">
+            <div className="text-lg font-bold text-white mb-1">
+              {player.foot || "N/A"}
+            </div>
+            <div className="text-sm text-gray-400">Pied Fort</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-stats-dark/30 border-gray-700">
+          <CardContent className="p-4 text-center">
+            <div className="text-lg font-bold text-white mb-1">
+              {player.height ? `${player.height}m` : "N/A"}
+            </div>
+            <div className="text-sm text-gray-400">Taille</div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

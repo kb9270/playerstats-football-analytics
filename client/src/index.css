@@ -23,29 +23,37 @@
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --ring: hsl(20, 14.3%, 4.1%);
   --radius: 0.5rem;
+  
+  /* Football stats theme colors */
+  --stats-dark: hsl(0, 0%, 3.9%);
+  --stats-secondary: hsl(0, 0%, 10.2%);
+  --stats-accent: hsl(340, 82%, 52%);
+  --stats-pink: hsl(346, 87%, 43%);
+  --stats-green: hsl(122, 39%, 49%);
+  --stats-yellow: hsl(45, 100%, 51%);
+  --stats-blue: hsl(217, 91%, 60%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
+  --background: hsl(0, 0%, 3.9%);
   --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
+  --muted: hsl(0, 0%, 14.9%);
+  --muted-foreground: hsl(0, 0%, 63.9%);
+  --popover: hsl(0, 0%, 3.9%);
   --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
+  --card: hsl(0, 0%, 10.2%);
   --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(240, 3.7%, 15.9%);
+  --border: hsl(0, 0%, 14.9%);
+  --input: hsl(0, 0%, 14.9%);
+  --primary: hsl(340, 82%, 52%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(0, 0%, 14.9%);
   --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
+  --accent: hsl(0, 0%, 14.9%);
   --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+  --ring: hsl(0, 0%, 83.9%);
 }
 
 @layer base {
@@ -54,6 +62,84 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-stats-dark text-white font-sans antialiased;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 255, 255, 0.02) 10px,
+      rgba(255, 255, 255, 0.02) 20px
+    );
   }
+}
+
+@layer components {
+  .stats-card {
+    @apply bg-card/60 backdrop-blur-sm border border-gray-800 rounded-2xl;
+  }
+  
+  .stats-button {
+    @apply bg-stats-accent hover:bg-stats-pink text-white transition-colors duration-200;
+  }
+  
+  .percentile-bar {
+    @apply h-6 bg-gray-700 rounded-full overflow-hidden;
+  }
+  
+  .percentile-fill {
+    @apply h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full transition-all duration-500;
+  }
+  
+  .search-result-item {
+    @apply p-4 hover:bg-gray-800 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #374151 0px, #4b5563 40px, #374151 80px);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
 }
