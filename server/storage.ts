@@ -12,6 +12,8 @@ import {
   type ScoutingReport,
   type InsertScoutingReport
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, ilike, or, and } from "drizzle-orm";
 
 export interface IStorage {
   // Player methods
@@ -37,31 +39,26 @@ export interface IStorage {
   updateScoutingReport(id: number, report: Partial<InsertScoutingReport>): Promise<ScoutingReport | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private players: Map<number, Player>;
-  private playerStats: Map<number, PlayerStats>;
-  private comparisons: Map<number, Comparison>;
-  private scoutingReports: Map<number, ScoutingReport>;
-  private currentPlayerId: number;
-  private currentStatsId: number;
-  private currentComparisonId: number;
-  private currentReportId: number;
+export class DatabaseStorage implements IStorage {
+  // Database storage - no internal state needed
 
   constructor() {
-    this.players = new Map();
-    this.playerStats = new Map();
-    this.comparisons = new Map();
-    this.scoutingReports = new Map();
-    this.currentPlayerId = 1;
-    this.currentStatsId = 1;
-    this.currentComparisonId = 1;
-    this.currentReportId = 1;
-    
-    // Initialize with real player data for demonstration
+    // Initialize database with real data on first run
     this.initializeRealData();
   }
 
-  private initializeRealData() {
+  private async initializeRealData() {
+    try {
+      // Check if data already exists
+      const existingPlayers = await db.select().from(players).limit(1);
+      if (existingPlayers.length > 0) {
+        return; // Data already exists
+      }
+    } catch (error) {
+      console.log('Initializing database with real player data...');
+    }
+
+    // Initialize with real data for demonstration
     // Moses Simon - FC Nantes
     const mosesSimon: Player = {
       id: 1,
@@ -497,216 +494,138 @@ export class MemStorage implements IStorage {
       lastUpdated: new Date(),
     };
 
-    // Store all the data
-    this.players.set(1, mosesSimon);
-    this.players.set(2, mbappe);
-    this.players.set(3, cho);
-    this.players.set(4, zuriko);
-    this.players.set(5, bakwa);
-    
-    this.playerStats.set(1, mosesStats);
-    this.playerStats.set(2, mbappeStats);
-    this.playerStats.set(3, choStats);
-    this.playerStats.set(4, zurikoStats);
-    this.playerStats.set(5, bakwaStats);
-    
-    this.scoutingReports.set(1, mosesReport);
-    this.scoutingReports.set(2, mbappeReport);
-    this.scoutingReports.set(3, choReport);
-    this.scoutingReports.set(4, zurikoReport);
-    this.scoutingReports.set(5, bakwaReport);
+    try {
+      // Insert players
+      await db.insert(players).values([
+        { ...mosesSimon, id: undefined },
+        { ...mbappe, id: undefined },
+        { ...cho, id: undefined },
+        { ...zuriko, id: undefined },
+        { ...bakwa, id: undefined }
+      ]);
 
-    this.currentPlayerId = 6;
-    this.currentStatsId = 6;
-    this.currentReportId = 6;
+      // Get inserted players to get their IDs
+      const insertedPlayers = await db.select().from(players);
+      const playerMap = new Map(insertedPlayers.map(p => [p.name, p.id]));
+
+      // Insert stats with correct player IDs
+      await db.insert(playerStats).values([
+        { ...mosesStats, id: undefined, playerId: playerMap.get("Moses Simon") },
+        { ...mbappeStats, id: undefined, playerId: playerMap.get("Kylian Mbappé") },
+        { ...choStats, id: undefined, playerId: playerMap.get("Mohamed-Ali Cho") },
+        { ...zurikoStats, id: undefined, playerId: playerMap.get("Zuriko Davitashvili") },
+        { ...bakwaStats, id: undefined, playerId: playerMap.get("Dilane Bakwa") }
+      ]);
+
+      // Insert scouting reports with correct player IDs
+      await db.insert(scoutingReports).values([
+        { ...mosesReport, id: undefined, playerId: playerMap.get("Moses Simon") },
+        { ...mbappeReport, id: undefined, playerId: playerMap.get("Kylian Mbappé") },
+        { ...choReport, id: undefined, playerId: playerMap.get("Mohamed-Ali Cho") },
+        { ...zurikoReport, id: undefined, playerId: playerMap.get("Zuriko Davitashvili") },
+        { ...bakwaReport, id: undefined, playerId: playerMap.get("Dilane Bakwa") }
+      ]);
+
+      console.log('Database initialized with real player data');
+    } catch (error) {
+      console.error('Error initializing database:', error);
+    }
   }
 
   async getPlayer(id: number): Promise<Player | undefined> {
-    return this.players.get(id);
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
   }
 
   async getPlayerByName(name: string): Promise<Player | undefined> {
-    return Array.from(this.players.values()).find(
-      (player) => player.name.toLowerCase().includes(name.toLowerCase())
-    );
+    const [player] = await db.select().from(players).where(ilike(players.name, `%${name}%`));
+    return player || undefined;
   }
 
   async searchPlayers(query: string): Promise<Player[]> {
-    const searchTerm = query.toLowerCase();
-    return Array.from(this.players.values()).filter(
-      (player) => 
-        player.name.toLowerCase().includes(searchTerm) ||
-        player.team?.toLowerCase().includes(searchTerm) ||
-        player.position?.toLowerCase().includes(searchTerm)
+    const searchTerm = `%${query}%`;
+    return await db.select().from(players).where(
+      or(
+        ilike(players.name, searchTerm),
+        ilike(players.team, searchTerm),
+        ilike(players.position, searchTerm)
+      )
     );
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
-    const id = this.currentPlayerId++;
-    const player: Player = { 
-      ...insertPlayer,
-      id,
-      lastUpdated: new Date(),
-      // Ensure all nullable fields are properly typed
-      fullName: insertPlayer.fullName ?? null,
-      age: insertPlayer.age ?? null,
-      nationality: insertPlayer.nationality ?? null,
-      position: insertPlayer.position ?? null,
-      team: insertPlayer.team ?? null,
-      league: insertPlayer.league ?? null,
-      marketValue: insertPlayer.marketValue ?? null,
-      contractEnd: insertPlayer.contractEnd ?? null,
-      height: insertPlayer.height ?? null,
-      foot: insertPlayer.foot ?? null,
-      photoUrl: insertPlayer.photoUrl ?? null,
-      fbrefId: insertPlayer.fbrefId ?? null,
-      transfermarktId: insertPlayer.transfermarktId ?? null,
-    };
-    this.players.set(id, player);
+    const [player] = await db.insert(players).values(insertPlayer).returning();
     return player;
   }
 
   async updatePlayer(id: number, updateData: Partial<InsertPlayer>): Promise<Player | undefined> {
-    const player = this.players.get(id);
-    if (!player) return undefined;
-    
-    const updatedPlayer: Player = { 
-      ...player, 
-      ...updateData,
-      lastUpdated: new Date()
-    };
-    this.players.set(id, updatedPlayer);
-    return updatedPlayer;
+    const [player] = await db.update(players)
+      .set({ ...updateData, lastUpdated: new Date() })
+      .where(eq(players.id, id))
+      .returning();
+    return player || undefined;
   }
 
   async getPlayerStats(playerId: number, season?: string): Promise<PlayerStats[]> {
-    return Array.from(this.playerStats.values()).filter(
-      (stats) => stats.playerId === playerId && (!season || stats.season === season)
-    );
+    if (season) {
+      return await db.select().from(playerStats)
+        .where(and(eq(playerStats.playerId, playerId), eq(playerStats.season, season)));
+    }
+    return await db.select().from(playerStats).where(eq(playerStats.playerId, playerId));
   }
 
   async getPlayerStatsBySeason(playerId: number, season: string, competition?: string): Promise<PlayerStats | undefined> {
-    return Array.from(this.playerStats.values()).find(
-      (stats) => 
-        stats.playerId === playerId && 
-        stats.season === season &&
-        (!competition || stats.competition === competition)
-    );
+    let conditions = [eq(playerStats.playerId, playerId), eq(playerStats.season, season)];
+    
+    if (competition) {
+      conditions.push(eq(playerStats.competition, competition));
+    }
+    
+    const [stats] = await db.select().from(playerStats).where(and(...conditions));
+    return stats || undefined;
   }
 
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
-    const id = this.currentStatsId++;
-    const stats: PlayerStats = { 
-      ...insertStats,
-      id,
-      lastUpdated: new Date(),
-      playerId: insertStats.playerId ?? null,
-      competition: insertStats.competition ?? null,
-      matches: insertStats.matches ?? null,
-      starts: insertStats.starts ?? null,
-      minutes: insertStats.minutes ?? null,
-      goals: insertStats.goals ?? null,
-      assists: insertStats.assists ?? null,
-      goalsNonPenalty: insertStats.goalsNonPenalty ?? null,
-      penaltyGoals: insertStats.penaltyGoals ?? null,
-      penaltyAttempts: insertStats.penaltyAttempts ?? null,
-      yellowCards: insertStats.yellowCards ?? null,
-      redCards: insertStats.redCards ?? null,
-      xG: insertStats.xG ?? null,
-      xA: insertStats.xA ?? null,
-      progressivePasses: insertStats.progressivePasses ?? null,
-      progressiveCarries: insertStats.progressiveCarries ?? null,
-      progressivePassesReceived: insertStats.progressivePassesReceived ?? null,
-      passesCompleted: insertStats.passesCompleted ?? null,
-      passesAttempted: insertStats.passesAttempted ?? null,
-      passCompletionRate: insertStats.passCompletionRate ?? null,
-      keyPasses: insertStats.keyPasses ?? null,
-      finalThirdPasses: insertStats.finalThirdPasses ?? null,
-      penaltyAreaPasses: insertStats.penaltyAreaPasses ?? null,
-      crosses: insertStats.crosses ?? null,
-      tacklesWon: insertStats.tacklesWon ?? null,
-      tacklesAttempted: insertStats.tacklesAttempted ?? null,
-      interceptions: insertStats.interceptions ?? null,
-      blocks: insertStats.blocks ?? null,
-      clearances: insertStats.clearances ?? null,
-      aerialsWon: insertStats.aerialsWon ?? null,
-      aerialsAttempted: insertStats.aerialsAttempted ?? null,
-      dribblesCompleted: insertStats.dribblesCompleted ?? null,
-      dribblesAttempted: insertStats.dribblesAttempted ?? null,
-      touches: insertStats.touches ?? null,
-      touchesPenaltyArea: insertStats.touchesPenaltyArea ?? null,
-      dispossessed: insertStats.dispossessed ?? null,
-      miscontrols: insertStats.miscontrols ?? null,
-      rating: insertStats.rating ?? null,
-    };
-    this.playerStats.set(id, stats);
+    const [stats] = await db.insert(playerStats).values(insertStats).returning();
     return stats;
   }
 
   async updatePlayerStats(id: number, updateData: Partial<InsertPlayerStats>): Promise<PlayerStats | undefined> {
-    const stats = this.playerStats.get(id);
-    if (!stats) return undefined;
-    
-    const updatedStats: PlayerStats = { 
-      ...stats, 
-      ...updateData,
-      lastUpdated: new Date()
-    };
-    this.playerStats.set(id, updatedStats);
-    return updatedStats;
+    const [stats] = await db.update(playerStats)
+      .set({ ...updateData, lastUpdated: new Date() })
+      .where(eq(playerStats.id, id))
+      .returning();
+    return stats || undefined;
   }
 
   async createComparison(insertComparison: InsertComparison): Promise<Comparison> {
-    const id = this.currentComparisonId++;
-    const comparison: Comparison = { 
-      ...insertComparison,
-      id,
-      createdAt: new Date(),
-      competition: insertComparison.competition ?? null,
-    };
-    this.comparisons.set(id, comparison);
+    const [comparison] = await db.insert(comparisons).values(insertComparison).returning();
     return comparison;
   }
 
   async getComparison(id: number): Promise<Comparison | undefined> {
-    return this.comparisons.get(id);
+    const [comparison] = await db.select().from(comparisons).where(eq(comparisons.id, id));
+    return comparison || undefined;
   }
 
   async getScoutingReport(playerId: number, season: string): Promise<ScoutingReport | undefined> {
-    return Array.from(this.scoutingReports.values()).find(
-      (report) => report.playerId === playerId && report.season === season
-    );
+    const [report] = await db.select().from(scoutingReports)
+      .where(and(eq(scoutingReports.playerId, playerId), eq(scoutingReports.season, season)));
+    return report || undefined;
   }
 
   async createScoutingReport(insertReport: InsertScoutingReport): Promise<ScoutingReport> {
-    const id = this.currentReportId++;
-    const report: ScoutingReport = { 
-      ...insertReport,
-      id,
-      lastUpdated: new Date(),
-      playerId: insertReport.playerId ?? null,
-      position: insertReport.position ?? null,
-      competition: insertReport.competition ?? null,
-      strengths: insertReport.strengths ?? null,
-      weaknesses: insertReport.weaknesses ?? null,
-      overallRating: insertReport.overallRating ?? null,
-    };
-    this.scoutingReports.set(id, report);
+    const [report] = await db.insert(scoutingReports).values(insertReport).returning();
     return report;
   }
 
   async updateScoutingReport(id: number, updateData: Partial<InsertScoutingReport>): Promise<ScoutingReport | undefined> {
-    const report = this.scoutingReports.get(id);
-    if (!report) return undefined;
-    
-    const updatedReport: ScoutingReport = { 
-      ...report, 
-      ...updateData,
-      lastUpdated: new Date()
-    };
-    this.scoutingReports.set(id, updatedReport);
-    return updatedReport;
+    const [report] = await db.update(scoutingReports)
+      .set({ ...updateData, lastUpdated: new Date() })
+      .where(eq(scoutingReports.id, id))
+      .returning();
+    return report || undefined;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
