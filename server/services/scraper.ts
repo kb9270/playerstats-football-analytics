@@ -1,6 +1,7 @@
 import { storage } from "../storage";
 import { fbrefApi } from "./footballApi";
 import { transfermarktApi } from "./transfermarktApi";
+import { fbrefScraper } from "./fbrefScraper";
 import { aiService } from "./aiService";
 
 export class FootballDataScraper {
@@ -31,16 +32,16 @@ export class FootballDataScraper {
         }
       }
       
-      // Try FBref as fallback/enhancement
+      // Try FBref with enhanced scraper as fallback/enhancement
       if (!playerData) {
-        const fbrefResults = await fbrefApi.searchPlayers(query);
+        const fbrefResults = await fbrefScraper.searchPlayer(query);
         if (fbrefResults.length > 0) {
           const bestMatch = fbrefResults[0];
           console.log(`Found player on FBref: ${bestMatch.name}`);
           
-          playerData = await fbrefApi.getPlayerProfile(bestMatch.fbrefId);
-          if (playerData) {
-            playerData.fbrefId = bestMatch.fbrefId;
+          const profile = await fbrefScraper.getPlayerProfile(bestMatch.fbrefId);
+          if (profile) {
+            playerData = { ...profile, fbrefId: bestMatch.fbrefId };
           }
         }
       }
@@ -53,13 +54,31 @@ export class FootballDataScraper {
       
       if (playerData) {
         // Store the player
+        // Check if player already exists to avoid duplicate key error
+        if (playerData.transfermarktId) {
+          try {
+            const existingPlayers = await storage.searchPlayers(playerData.name);
+            const existingPlayer = existingPlayers.find(p => 
+              p.transfermarktId === playerData.transfermarktId || 
+              p.name.toLowerCase() === playerData.name.toLowerCase()
+            );
+            
+            if (existingPlayer) {
+              console.log(`Player already exists: ${existingPlayer.name}`);
+              return existingPlayer;
+            }
+          } catch (error) {
+            console.log('Error checking for existing player');
+          }
+        }
+
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
-        // Try to get and store stats from FBref if available
+        // Try to get and store comprehensive stats from FBref if available
         if (playerData.fbrefId) {
           try {
-            const stats = await fbrefApi.getPlayerStats(playerData.fbrefId);
+            const stats = await fbrefScraper.getPlayerStats(playerData.fbrefId);
             if (stats.length > 0) {
               for (const statRecord of stats) {
                 await storage.createPlayerStats({
@@ -68,8 +87,39 @@ export class FootballDataScraper {
                 });
               }
             }
+            
+            // Get detailed stats for better analysis
+            const detailedStats = await fbrefScraper.getDetailedStats(playerData.fbrefId);
+            if (detailedStats && Object.keys(detailedStats).length > 0) {
+              // Store detailed stats as additional records
+              if (detailedStats.shooting) {
+                await storage.createPlayerStats({
+                  playerId: storedPlayer.id,
+                  season: '2024-2025',
+                  competition: 'All Competitions',
+                  ...detailedStats.shooting
+                });
+              }
+            }
+            
+            // Get and store scouting report with percentiles
+            if (playerData.position) {
+              const percentileData = await fbrefScraper.getPlayerPercentiles(playerData.fbrefId, playerData.position);
+              if (percentileData.percentiles && Object.keys(percentileData.percentiles).length > 0) {
+                await storage.createScoutingReport({
+                  playerId: storedPlayer.id,
+                  season: '2024-2025',
+                  competition: 'All Competitions',
+                  position: playerData.position,
+                  percentiles: percentileData.percentiles,
+                  strengths: this.calculateStrengths(percentileData.percentiles),
+                  weaknesses: this.calculateWeaknesses(percentileData.percentiles),
+                  overallRating: this.calculateOverallRating(percentileData.percentiles)
+                });
+              }
+            }
           } catch (statsError) {
-            console.log('Could not fetch stats for player');
+            console.log('Could not fetch comprehensive stats for player');
           }
         }
         
@@ -91,7 +141,7 @@ export class FootballDataScraper {
       }
 
       // Update player stats
-      const stats = await fbrefApi.getPlayerStats(player.fbrefId);
+      const stats = await fbrefScraper.getPlayerStats(player.fbrefId);
       if (stats.length > 0) {
         for (const statRecord of stats) {
           await storage.createPlayerStats({
@@ -104,6 +154,34 @@ export class FootballDataScraper {
       console.error('Error updating player data:', error);
       throw error;
     }
+  }
+
+  private calculateStrengths(percentiles: any): string[] {
+    const strengths: string[] = [];
+    Object.entries(percentiles).forEach(([stat, value]) => {
+      if (typeof value === 'number' && value >= 80) {
+        strengths.push(stat.replace(/_/g, ' ').toUpperCase());
+      }
+    });
+    return strengths.slice(0, 4);
+  }
+
+  private calculateWeaknesses(percentiles: any): string[] {
+    const weaknesses: string[] = [];
+    Object.entries(percentiles).forEach(([stat, value]) => {
+      if (typeof value === 'number' && value <= 20) {
+        weaknesses.push(stat.replace(/_/g, ' ').toUpperCase());
+      }
+    });
+    return weaknesses.slice(0, 4);
+  }
+
+  private calculateOverallRating(percentiles: any): number {
+    const values = Object.values(percentiles).filter(v => typeof v === 'number') as number[];
+    if (values.length === 0) return 50;
+    
+    const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+    return Math.round(average);
   }
 }
 

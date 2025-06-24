@@ -25,10 +25,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center space-x-3">
-          <MapPin className="w-4 h-4 text-gray-400" />
+          <MapPin className="w-4 h-4 text-blue-400" />
           <div>
-            <span className="text-contrast-medium">Club:</span>
-            <span className="ml-2 font-medium text-contrast-high">{player.team || "N/A"}</span>
+            <span className="text-blue-300">Club:</span>
+            <span className="ml-2 font-medium text-blue-100">{player.team || "N/A"}</span>
           </div>
         </div>
         
@@ -37,20 +37,20 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         </div>
         
         <div className="flex items-center space-x-3">
-          <Calendar className="w-4 h-4 text-gray-400" />
+          <Calendar className="w-4 h-4 text-blue-400" />
           <div>
-            <span className="text-contrast-medium">Âge:</span>
-            <span className="ml-2 font-medium text-stats-accent">
+            <span className="text-blue-300">Âge:</span>
+            <span className="ml-2 font-medium text-blue-200">
               {player.age ? `${player.age} ANS` : "N/A"}
             </span>
           </div>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Flag className="w-4 h-4 text-gray-400" />
+          <Flag className="w-4 h-4 text-blue-400" />
           <div>
-            <span className="text-gray-400">Nationalité:</span>
-            <span className="ml-2 font-medium">{player.nationality || "N/A"}</span>
+            <span className="text-blue-300">Nationalité:</span>
+            <span className="ml-2 font-medium text-blue-100">{player.nationality || "N/A"}</span>
           </div>
         </div>
         

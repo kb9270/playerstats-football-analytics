@@ -61,7 +61,7 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
             setQuery(e.target.value);
             setShowResults(e.target.value.length > 2);
           }}
-          className="w-full px-6 py-4 bg-stats-secondary border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-stats-accent focus:outline-none focus:ring-2 focus:ring-stats-accent/20 transition-all pr-16"
+          className="w-full px-6 py-4 bg-blue-950/30 border border-blue-400/30 rounded-xl text-blue-100 placeholder-blue-300 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all pr-16 backdrop-blur-sm"
         />
         <Button
           type="submit"
