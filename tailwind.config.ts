@@ -61,6 +61,15 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        stats: {
+          dark: "var(--stats-dark)",
+          secondary: "var(--stats-secondary)",
+          accent: "var(--stats-accent)",
+          pink: "var(--stats-pink)",
+          green: "var(--stats-green)",
+          yellow: "var(--stats-yellow)",
+          blue: "var(--stats-blue)",
+        },
       },
       keyframes: {
         "accordion-down": {

@@ -81,9 +81,23 @@ export class MemStorage implements IStorage {
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
     const player: Player = { 
-      ...insertPlayer, 
+      ...insertPlayer,
       id,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      // Ensure all nullable fields are properly typed
+      fullName: insertPlayer.fullName ?? null,
+      age: insertPlayer.age ?? null,
+      nationality: insertPlayer.nationality ?? null,
+      position: insertPlayer.position ?? null,
+      team: insertPlayer.team ?? null,
+      league: insertPlayer.league ?? null,
+      marketValue: insertPlayer.marketValue ?? null,
+      contractEnd: insertPlayer.contractEnd ?? null,
+      height: insertPlayer.height ?? null,
+      foot: insertPlayer.foot ?? null,
+      photoUrl: insertPlayer.photoUrl ?? null,
+      fbrefId: insertPlayer.fbrefId ?? null,
+      transfermarktId: insertPlayer.transfermarktId ?? null,
     };
     this.players.set(id, player);
     return player;
@@ -120,9 +134,47 @@ export class MemStorage implements IStorage {
   async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
     const id = this.currentStatsId++;
     const stats: PlayerStats = { 
-      ...insertStats, 
+      ...insertStats,
       id,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      playerId: insertStats.playerId ?? null,
+      competition: insertStats.competition ?? null,
+      matches: insertStats.matches ?? null,
+      starts: insertStats.starts ?? null,
+      minutes: insertStats.minutes ?? null,
+      goals: insertStats.goals ?? null,
+      assists: insertStats.assists ?? null,
+      goalsNonPenalty: insertStats.goalsNonPenalty ?? null,
+      penaltyGoals: insertStats.penaltyGoals ?? null,
+      penaltyAttempts: insertStats.penaltyAttempts ?? null,
+      yellowCards: insertStats.yellowCards ?? null,
+      redCards: insertStats.redCards ?? null,
+      xG: insertStats.xG ?? null,
+      xA: insertStats.xA ?? null,
+      progressivePasses: insertStats.progressivePasses ?? null,
+      progressiveCarries: insertStats.progressiveCarries ?? null,
+      progressivePassesReceived: insertStats.progressivePassesReceived ?? null,
+      passesCompleted: insertStats.passesCompleted ?? null,
+      passesAttempted: insertStats.passesAttempted ?? null,
+      passCompletionRate: insertStats.passCompletionRate ?? null,
+      keyPasses: insertStats.keyPasses ?? null,
+      finalThirdPasses: insertStats.finalThirdPasses ?? null,
+      penaltyAreaPasses: insertStats.penaltyAreaPasses ?? null,
+      crosses: insertStats.crosses ?? null,
+      tacklesWon: insertStats.tacklesWon ?? null,
+      tacklesAttempted: insertStats.tacklesAttempted ?? null,
+      interceptions: insertStats.interceptions ?? null,
+      blocks: insertStats.blocks ?? null,
+      clearances: insertStats.clearances ?? null,
+      aerialsWon: insertStats.aerialsWon ?? null,
+      aerialsAttempted: insertStats.aerialsAttempted ?? null,
+      dribblesCompleted: insertStats.dribblesCompleted ?? null,
+      dribblesAttempted: insertStats.dribblesAttempted ?? null,
+      touches: insertStats.touches ?? null,
+      touchesPenaltyArea: insertStats.touchesPenaltyArea ?? null,
+      dispossessed: insertStats.dispossessed ?? null,
+      miscontrols: insertStats.miscontrols ?? null,
+      rating: insertStats.rating ?? null,
     };
     this.playerStats.set(id, stats);
     return stats;
@@ -144,9 +196,10 @@ export class MemStorage implements IStorage {
   async createComparison(insertComparison: InsertComparison): Promise<Comparison> {
     const id = this.currentComparisonId++;
     const comparison: Comparison = { 
-      ...insertComparison, 
+      ...insertComparison,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      competition: insertComparison.competition ?? null,
     };
     this.comparisons.set(id, comparison);
     return comparison;
@@ -165,9 +218,15 @@ export class MemStorage implements IStorage {
   async createScoutingReport(insertReport: InsertScoutingReport): Promise<ScoutingReport> {
     const id = this.currentReportId++;
     const report: ScoutingReport = { 
-      ...insertReport, 
+      ...insertReport,
       id,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      playerId: insertReport.playerId ?? null,
+      position: insertReport.position ?? null,
+      competition: insertReport.competition ?? null,
+      strengths: insertReport.strengths ?? null,
+      weaknesses: insertReport.weaknesses ?? null,
+      overallRating: insertReport.overallRating ?? null,
     };
     this.scoutingReports.set(id, report);
     return report;

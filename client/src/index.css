@@ -62,7 +62,8 @@
   }
 
   body {
-    @apply bg-stats-dark text-white font-sans antialiased;
+    @apply text-white font-sans antialiased;
+    background-color: hsl(0, 0%, 3.9%);
     background-image: repeating-linear-gradient(
       45deg,
       transparent,
@@ -75,11 +76,17 @@
 
 @layer components {
   .stats-card {
-    @apply bg-card/60 backdrop-blur-sm border border-gray-800 rounded-2xl;
+    @apply backdrop-blur-sm border border-gray-800 rounded-2xl;
+    background-color: rgba(15, 23, 42, 0.6);
   }
   
   .stats-button {
-    @apply bg-stats-accent hover:bg-stats-pink text-white transition-colors duration-200;
+    @apply text-white transition-colors duration-200;
+    background-color: hsl(340, 82%, 52%);
+  }
+  
+  .stats-button:hover {
+    background-color: hsl(346, 87%, 43%);
   }
   
   .percentile-bar {

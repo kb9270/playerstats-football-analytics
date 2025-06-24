@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const players = await Promise.all(
         playerIds.map(async (playerId) => {
           const player = await storage.getPlayer(playerId);
-          const stats = await storage.getPlayerStatsBySeason(playerId, comparison.season, comparison.competition);
+          const stats = await storage.getPlayerStatsBySeason(playerId, comparison.season, comparison.competition || undefined);
           return { player, stats };
         })
       );
