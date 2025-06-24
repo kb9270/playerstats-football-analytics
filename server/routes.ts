@@ -190,23 +190,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Force refreshing FBref data for: ${player.name}`);
       
-      // Import the enhancer
-      const { fbrefEnhancer } = await import("./services/fbrefEnhancer");
+      // Import the aggressive matcher
+      const { aggressiveFbrefMatcher } = await import("./services/aggressiveFbrefMatcher");
       
-      // Find FBref ID
-      const fbrefId = await fbrefEnhancer.findPlayerFbrefId(player.name, player.team, player.age);
+      // Find FBref ID using aggressive strategies
+      const fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
+        player.name, 
+        player.team, 
+        player.nationality, 
+        player.age
+      );
       
       if (fbrefId) {
         // Update player with FBref ID
         await storage.updatePlayer(id, { fbrefId });
         
-        // Get complete stats
-        const hasStats = await fbrefEnhancer.getCompletePlayerStats(fbrefId, id);
+        // Get complete stats using scraper
+        let hasStats = false;
+        try {
+          const stats = await scraper.getPlayerStats(fbrefId);
+          if (stats && stats.length > 0) {
+            for (const statRecord of stats) {
+              await storage.createPlayerStats({
+                ...statRecord,
+                playerId: id
+              });
+            }
+            hasStats = true;
+          }
+        } catch (statsError) {
+          console.log('Could not get stats during refresh');
+        }
         
         // Generate scouting report if position is available
         let hasReport = false;
         if (player.position) {
-          hasReport = await fbrefEnhancer.generateScoutingReport(fbrefId, id, player.position);
+          try {
+            await scraper.updatePlayerData(id);
+            hasReport = true;
+          } catch (reportError) {
+            console.log('Could not generate scouting report during refresh');
+          }
         }
         
         res.json({ 

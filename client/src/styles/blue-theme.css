@@ -11,11 +11,18 @@
 .text-color-cyan { color: #06b6d4 !important; }
 
 /* Classes pour rotation automatique des couleurs */
-.rotating-color-1 { color: #a855f7 !important; } /* Violet */
-.rotating-color-2 { color: #eab308 !important; } /* Jaune */
-.rotating-color-3 { color: #ef4444 !important; } /* Rouge */
-.rotating-color-4 { color: #3b82f6 !important; } /* Bleu */
-.rotating-color-5 { color: #22c55e !important; } /* Vert */
+.rotating-color-1 { color: #a855f7 !important; font-weight: 600; } /* Violet */
+.rotating-color-2 { color: #eab308 !important; font-weight: 600; } /* Jaune */
+.rotating-color-3 { color: #ef4444 !important; font-weight: 600; } /* Rouge */
+.rotating-color-4 { color: #3b82f6 !important; font-weight: 600; } /* Bleu */
+.rotating-color-5 { color: #22c55e !important; font-weight: 600; } /* Vert */
+
+/* Couleurs par niveau de performance */
+.level-excellent { color: #22c55e !important; font-weight: 700; text-shadow: 0 0 8px #22c55e40; }
+.level-good { color: #3b82f6 !important; font-weight: 600; text-shadow: 0 0 8px #3b82f640; }
+.level-average { color: #eab308 !important; font-weight: 600; text-shadow: 0 0 8px #eab30840; }
+.level-below { color: #f97316 !important; font-weight: 600; text-shadow: 0 0 8px #f9731640; }
+.level-poor { color: #ef4444 !important; font-weight: 600; text-shadow: 0 0 8px #ef444440; }
 
 /* Override des couleurs principales pour un thème bleu uniforme */
 .stats-card {

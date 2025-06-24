@@ -3,6 +3,7 @@ import { fbrefApi } from "./footballApi";
 import { transfermarktApi } from "./transfermarktApi";
 import { fbrefScraper } from "./fbrefScraper";
 import { fbrApi } from "./fbrApi";
+import { aggressiveFbrefMatcher } from "./aggressiveFbrefMatcher";
 import { aiService } from "./aiService";
 
 export class FootballDataScraper {
@@ -110,21 +111,25 @@ export class FootballDataScraper {
         const storedPlayer = await storage.createPlayer(playerData);
         console.log(`Player stored with ID: ${storedPlayer.id}`);
         
-        // Aggressively try to get FBref data if we don't have it yet
+        // Aggressively try to get FBref data using multiple strategies
         let fbrefId = playerData.fbrefId;
         if (!fbrefId) {
-          console.log(`Attempting to find FBref ID for: ${playerData.name}`);
+          console.log(`Using aggressive FBref matching for: ${playerData.name}`);
           try {
-            const fbrefResults = await fbrefScraper.searchPlayer(playerData.name);
-            if (fbrefResults.length > 0) {
-              fbrefId = fbrefResults[0].fbrefId;
-              console.log(`Found FBref ID: ${fbrefId}`);
-              
+            fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
+              playerData.name,
+              playerData.team,
+              playerData.nationality,
+              playerData.age
+            );
+            
+            if (fbrefId) {
+              console.log(`Aggressive search found FBref ID: ${fbrefId}`);
               // Update the stored player with fbrefId
               await storage.updatePlayer(storedPlayer.id, { fbrefId });
             }
           } catch (searchError) {
-            console.log('Could not find FBref ID for player');
+            console.log('Aggressive FBref search failed:', searchError);
           }
         }
 
@@ -238,20 +243,24 @@ export class FootballDataScraper {
 
       let fbrefId = player.fbrefId;
       
-      // If no FBref ID, try to find one
+      // If no FBref ID, use aggressive search
       if (!fbrefId) {
-        console.log(`Searching for FBref ID for player: ${player.name}`);
+        console.log(`Using aggressive FBref search for: ${player.name}`);
         try {
-          const fbrefResults = await fbrefScraper.searchPlayer(player.name);
-          if (fbrefResults.length > 0) {
-            fbrefId = fbrefResults[0].fbrefId;
-            console.log(`Found FBref ID: ${fbrefId} for ${player.name}`);
-            
+          fbrefId = await aggressiveFbrefMatcher.findPlayerByMultipleStrategies(
+            player.name,
+            player.team,
+            player.nationality,
+            player.age
+          );
+          
+          if (fbrefId) {
+            console.log(`Aggressive search found FBref ID: ${fbrefId} for ${player.name}`);
             // Update player with fbrefId
             await storage.updatePlayer(playerId, { fbrefId });
           }
         } catch (searchError) {
-          console.log('Could not find FBref ID during update');
+          console.log('Aggressive FBref search failed during update:', searchError);
         }
       }
 
