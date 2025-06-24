@@ -107,6 +107,45 @@ export default function Leagues() {
       season: "2024-2025",
       topScorer: "Mohamed-Ali Cho",
       topScorerGoals: 18
+    },
+    {
+      id: 7,
+      name: "Liga Portugal",
+      country: "Portugal",
+      level: 1,
+      teams: 18,
+      totalPlayers: 486,
+      averageAge: 25.6,
+      averageValue: 8500000,
+      season: "2024-2025",
+      topScorer: "Viktor Gyökeres",
+      topScorerGoals: 23
+    },
+    {
+      id: 8,
+      name: "Eredivisie",
+      country: "Pays-Bas",
+      level: 1,
+      teams: 18,
+      totalPlayers: 486,
+      averageAge: 24.8,
+      averageValue: 6200000,
+      season: "2024-2025",
+      topScorer: "Brian Brobbey",
+      topScorerGoals: 19
+    },
+    {
+      id: 9,
+      name: "Championship",
+      country: "Angleterre",
+      level: 2,
+      teams: 24,
+      totalPlayers: 648,
+      averageAge: 26.4,
+      averageValue: 4500000,
+      season: "2024-2025",
+      topScorer: "Sammie Szmodics",
+      topScorerGoals: 21
     }
   ];
 
@@ -168,13 +207,51 @@ export default function Leagues() {
           </div>
         </div>
 
+        {/* League Statistics Overview */}
+        {!searchQuery && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {allLeagues.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Ligues disponibles</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {allLeagues.reduce((sum, league) => sum + league.teams, 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">Équipes total</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {allLeagues.reduce((sum, league) => sum + league.totalPlayers, 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">Joueurs total</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {formatValue(allLeagues.reduce((sum, league) => sum + league.averageValue, 0) / allLeagues.length)}
+                </div>
+                <div className="text-sm text-muted-foreground">Valeur moyenne</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Leagues Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLeagues.map((league) => (
-            <Card key={league.id} className="bg-card/80 border-border hover:bg-card/90 transition-colors cursor-pointer">
+            <Card key={league.id} className="bg-card/80 border-border hover:bg-card/90 transition-all duration-300 cursor-pointer group hover:shadow-lg">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                  <CardTitle className="text-xl text-foreground flex items-center gap-2 group-hover:text-stats-accent transition-colors">
                     <Trophy className="w-5 h-5 text-stats-accent" />
                     {league.name}
                   </CardTitle>
@@ -191,37 +268,45 @@ export default function Leagues() {
               
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-card/50 rounded-lg p-3">
                     <Trophy className="w-4 h-4 text-stats-accent" />
-                    <span className="text-foreground">{league.teams} équipes</span>
+                    <div>
+                      <div className="font-semibold text-foreground">{league.teams}</div>
+                      <div className="text-xs text-muted-foreground">Équipes</div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-card/50 rounded-lg p-3">
                     <Users className="w-4 h-4 text-stats-accent" />
-                    <span className="text-foreground">{league.totalPlayers} joueurs</span>
+                    <div>
+                      <div className="font-semibold text-foreground">{league.totalPlayers}</div>
+                      <div className="text-xs text-muted-foreground">Joueurs</div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Âge moyen:</span>
-                    <span className="text-foreground">{league.averageAge} ans</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center bg-muted/30 rounded-lg p-3">
+                    <span className="text-muted-foreground font-medium">Âge moyen:</span>
+                    <span className="text-foreground font-semibold">{league.averageAge} ans</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Valeur moyenne:</span>
-                    <span className="text-stats-accent font-semibold">
+                  <div className="flex justify-between items-center bg-gradient-to-r from-stats-accent/10 to-transparent rounded-lg p-3">
+                    <span className="text-muted-foreground font-medium">Valeur moyenne:</span>
+                    <span className="text-stats-accent font-bold">
                       {formatValue(league.averageValue)}
                     </span>
                   </div>
                 </div>
 
                 {league.topScorer && (
-                  <div className="pt-2 border-t border-border">
+                  <div className="pt-2 border-t border-border bg-card/30 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-4 h-4 text-stats-accent" />
-                      <span className="text-sm text-muted-foreground">Meilleur buteur</span>
+                      <span className="text-sm text-muted-foreground font-medium">Meilleur buteur</span>
                     </div>
-                    <div className="text-foreground font-medium">{league.topScorer}</div>
-                    <div className="text-stats-accent font-bold">{league.topScorerGoals} buts</div>
+                    <div className="flex justify-between items-center">
+                      <div className="text-foreground font-medium">{league.topScorer}</div>
+                      <div className="text-stats-accent font-bold text-lg">{league.topScorerGoals} ⚽</div>
+                    </div>
                   </div>
                 )}
               </CardContent>

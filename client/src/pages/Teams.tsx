@@ -70,6 +70,50 @@ export default function Teams() {
       playerCount: 26,
       averageAge: 25.8,
       totalValue: 25000000
+    },
+    {
+      id: 5,
+      name: "Paris Saint-Germain",
+      league: "Ligue 1",
+      country: "France",
+      founded: 1970,
+      stadium: "Parc des Princes",
+      playerCount: 30,
+      averageAge: 26.2,
+      totalValue: 750000000
+    },
+    {
+      id: 6,
+      name: "Manchester City",
+      league: "Premier League",
+      country: "Angleterre",
+      founded: 1880,
+      stadium: "Etihad Stadium",
+      playerCount: 25,
+      averageAge: 27.1,
+      totalValue: 900000000
+    },
+    {
+      id: 7,
+      name: "FC Barcelona",
+      league: "La Liga",
+      country: "Espagne",
+      founded: 1899,
+      stadium: "Camp Nou",
+      playerCount: 26,
+      averageAge: 25.9,
+      totalValue: 720000000
+    },
+    {
+      id: 8,
+      name: "Bayern Munich",
+      league: "Bundesliga",
+      country: "Allemagne",
+      founded: 1900,
+      stadium: "Allianz Arena",
+      playerCount: 24,
+      averageAge: 26.5,
+      totalValue: 680000000
     }
   ];
 
@@ -114,13 +158,51 @@ export default function Teams() {
           </div>
         </div>
 
+        {/* Stats Overview */}
+        {!searchQuery && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {allTeams.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Équipes total</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {Math.round(allTeams.reduce((sum, team) => sum + (team.averageAge || 25), 0) / allTeams.length)}
+                </div>
+                <div className="text-sm text-muted-foreground">Âge moyen</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {formatValue(allTeams.reduce((sum, team) => sum + (team.totalValue || 0), 0) / allTeams.length)}
+                </div>
+                <div className="text-sm text-muted-foreground">Valeur moyenne</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card/80 border-border">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-stats-accent mb-2">
+                  {allTeams.reduce((sum, team) => sum + team.playerCount, 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">Joueurs total</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Teams Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeams.map((team) => (
-            <Card key={team.id} className="bg-card/80 border-border hover:bg-card/90 transition-colors cursor-pointer">
+            <Card key={team.id} className="bg-card/80 border-border hover:bg-card/90 transition-all duration-300 cursor-pointer group hover:shadow-lg">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                  <CardTitle className="text-xl text-foreground flex items-center gap-2 group-hover:text-stats-accent transition-colors">
                     <Trophy className="w-5 h-5 text-stats-accent" />
                     {team.name}
                   </CardTitle>
@@ -137,27 +219,31 @@ export default function Teams() {
               
               <CardContent className="space-y-4">
                 {team.stadium && (
-                  <div className="text-sm text-muted-foreground">
-                    🏟️ {team.stadium}
+                  <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                    🏟️ <span className="font-medium">{team.stadium}</span>
                   </div>
                 )}
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-card/50 rounded-lg p-3">
                     <Users className="w-4 h-4 text-stats-accent" />
-                    <span className="text-foreground">{team.playerCount} joueurs</span>
+                    <div>
+                      <div className="font-semibold text-foreground">{team.playerCount}</div>
+                      <div className="text-xs text-muted-foreground">Joueurs</div>
+                    </div>
                   </div>
                   {team.averageAge && (
-                    <div className="text-muted-foreground">
-                      Âge moyen: {team.averageAge} ans
+                    <div className="bg-card/50 rounded-lg p-3">
+                      <div className="font-semibold text-foreground">{team.averageAge} ans</div>
+                      <div className="text-xs text-muted-foreground">Âge moyen</div>
                     </div>
                   )}
                 </div>
                 
                 {team.totalValue && (
-                  <div className="pt-2 border-t border-border">
+                  <div className="pt-2 border-t border-border bg-gradient-to-r from-stats-accent/10 to-transparent rounded-lg p-3">
                     <div className="text-sm text-muted-foreground">Valeur totale</div>
-                    <div className="text-lg font-semibold text-stats-accent">
+                    <div className="text-xl font-bold text-stats-accent">
                       {formatValue(team.totalValue)}
                     </div>
                   </div>
