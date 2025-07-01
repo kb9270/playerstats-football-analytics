@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -69,15 +69,15 @@ export default function PlayerDetailedProfile() {
     setIsGeneratingAnalysis(true);
     try {
       const { player } = playerAnalysis.analysis;
-      const prompt = `Fais une analyse détaillée du joueur ${player.Player} (club : ${player.Squad}) basé sur ces statistiques de la saison 2024/2025 : 
-      - Buts: ${player.Gls} en ${player.MP} matchs (${player.Min} minutes)
-      - Passes décisives: ${player.Ast}
-      - xG (Expected Goals): ${player.xG}
-      - xAG (Expected Assists): ${player.xAG}
-      - Position: ${player.Pos}
-      - Âge: ${player.Age} ans
-      - Nationalité: ${player.Nation}
-      - Ligue: ${player.Comp}
+      const prompt = `Fais une analyse détaillée du joueur ${player.Player} (club : ${player.Squad || 'N/A'}) basé sur ces statistiques de la saison 2024/2025 : 
+      - Buts: ${player.Gls || 0} en ${player.MP || 0} matchs (${player.Min || 0} minutes)
+      - Passes décisives: ${player.Ast || 0}
+      - xG (Expected Goals): ${player.xG || 0}
+      - xAG (Expected Assists): ${player.xAG || 0}
+      - Position: ${player.Pos || 'N/A'}
+      - Âge: ${player.Age || 'N/A'} ans
+      - Nationalité: ${player.Nation || 'N/A'}
+      - Ligue: ${player.Comp || 'N/A'}
       
       Compare-le à des joueurs similaires évoluant au même poste en Europe et donne ton avis sur ses points forts, faiblesses et potentiel. Réponds en français, de manière structurée et professionnelle.`;
 
@@ -219,33 +219,33 @@ export default function PlayerDetailedProfile() {
                 <div className="flex items-center space-x-2">
                   <Flag className="w-4 h-4 text-pink-400" />
                   <span className="text-gray-300">Nationalité:</span>
-                  <span className="font-semibold">{player.Nation}</span>
+                  <span className="font-semibold">{player.Nation || 'N/A'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4 text-pink-400" />
                   <span className="text-gray-300">Club:</span>
-                  <span className="font-semibold">{player.Squad}</span>
+                  <span className="font-semibold">{player.Squad || 'N/A'}</span>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Target className="w-4 h-4 text-pink-400" />
                   <span className="text-gray-300">Position:</span>
-                  <span className="font-semibold">{player.Pos}</span>
+                  <span className="font-semibold">{player.Pos || 'N/A'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-pink-400" />
                   <span className="text-gray-300">Âge:</span>
-                  <span className="font-semibold">{player.Age} ans</span>
+                  <span className="font-semibold">{player.Age || 'N/A'} ans</span>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-pink-400">{player.Gls}</div>
+                  <div className="text-2xl font-bold text-pink-400">{player.Gls || 0}</div>
                   <div className="text-sm text-gray-300">Buts</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{player.Ast}</div>
+                  <div className="text-2xl font-bold text-blue-400">{player.Ast || 0}</div>
                   <div className="text-sm text-gray-300">Passes D.</div>
                 </div>
               </div>
@@ -262,19 +262,19 @@ export default function PlayerDetailedProfile() {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">{player.MP}</div>
+                <div className="text-3xl font-bold text-white mb-2">{player.MP || 0}</div>
                 <div className="text-sm text-gray-400">MATCHS</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-400 mb-2">{player.Gls}</div>
+                <div className="text-3xl font-bold text-green-400 mb-2">{player.Gls || 0}</div>
                 <div className="text-sm text-gray-400">BUTS</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">{player.Ast}</div>
+                <div className="text-3xl font-bold text-blue-400 mb-2">{player.Ast || 0}</div>
                 <div className="text-sm text-gray-400">PASSES DÉCISIVES</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400 mb-2">{player.Min}</div>
+                <div className="text-3xl font-bold text-yellow-400 mb-2">{player.Min || 0}</div>
                 <div className="text-sm text-gray-400">MINUTES</div>
               </div>
             </div>
