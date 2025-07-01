@@ -7,6 +7,7 @@ import { soccerDataService } from "./services/soccerDataService";
 import { enhancedSoccerDataService } from "./services/enhancedSoccerDataService";
 import { enhancedReportService } from "./services/enhancedReportService";
 import { aiService } from "./services/aiService";
+import { csvPlayerAnalyzer } from "./services/csvPlayerAnalyzer";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -521,6 +522,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error('Error in Flask-style report generation:', error);
+      res.status(500).json({
+        status: "error",
+        message: error.message || "Erreur lors de la génération du rapport"
+      });
+    }
+  });
+
+  // === NOUVELLES ROUTES POUR L'ANALYSE CSV ===
+  
+  // Rechercher un joueur dans la base CSV
+  app.get("/api/csv/players/search", async (req, res) => {
+    try {
+      const { q, team } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      console.log(`Searching CSV player: ${q}${team ? ` in team ${team}` : ''}`);
+      
+      const result = await csvPlayerAnalyzer.searchPlayer(q, team as string);
+      
+      if (result.found) {
+        res.json({ success: true, player: result.player });
+      } else {
+        res.status(404).json({ success: false, message: result.message });
+      }
+    } catch (error) {
+      console.error('CSV search error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Obtenir le profil complet d'un joueur CSV
+  app.get("/api/csv/players/profile/:playerName", async (req, res) => {
+    try {
+      const playerName = decodeURIComponent(req.params.playerName);
+      const team = req.query.team as string;
+      
+      console.log(`Getting CSV player profile: ${playerName}${team ? ` in team ${team}` : ''}`);
+      
+      const profile = await csvPlayerAnalyzer.getCompletePlayerProfile(playerName, team);
+      
+      if (profile.error) {
+        res.status(404).json({ error: profile.error });
+      } else {
+        res.json({ success: true, profile });
+      }
+    } catch (error) {
+      console.error('CSV profile error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Générer la heatmap d'un joueur
+  app.get("/api/csv/players/:playerName/heatmap", async (req, res) => {
+    try {
+      const playerName = decodeURIComponent(req.params.playerName);
+      
+      console.log(`Generating heatmap for CSV player: ${playerName}`);
+      
+      const heatmapData = await csvPlayerAnalyzer.generateHeatmap(playerName);
+      
+      if (heatmapData.error) {
+        res.status(404).json({ error: heatmapData.error });
+      } else {
+        res.json({ success: true, heatmap: heatmapData.heatmap });
+      }
+    } catch (error) {
+      console.error('CSV heatmap error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Obtenir la liste des joueurs disponibles
+  app.get("/api/csv/players/list", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      console.log(`Getting CSV players list (limit: ${limit})`);
+      
+      const players = await csvPlayerAnalyzer.getAvailablePlayersList(limit);
+      
+      res.json({ success: true, players, count: players.length });
+    } catch (error) {
+      console.error('CSV players list error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Obtenir les joueurs d'une équipe
+  app.get("/api/csv/teams/:teamName/players", async (req, res) => {
+    try {
+      const teamName = decodeURIComponent(req.params.teamName);
+      
+      console.log(`Getting CSV team players: ${teamName}`);
+      
+      const players = await csvPlayerAnalyzer.getPlayersByTeam(teamName);
+      
+      res.json({ success: true, team: teamName, players, count: players.length });
+    } catch (error) {
+      console.error('CSV team players error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Obtenir les statistiques des ligues
+  app.get("/api/csv/leagues/stats", async (req, res) => {
+    try {
+      console.log('Getting CSV league stats');
+      
+      const leagueStats = await csvPlayerAnalyzer.getLeagueStats();
+      
+      res.json({ success: true, leagues: leagueStats });
+    } catch (error) {
+      console.error('CSV league stats error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Endpoint Flask-style pour génération de rapport complet CSV
+  app.post("/api/csv/joueur/rapport-complet", async (req, res) => {
+    try {
+      const { nom, equipe } = req.body;
+      
+      if (!nom) {
+        return res.status(400).json({ 
+          status: "error", 
+          message: "Nom du joueur requis" 
+        });
+      }
+      
+      console.log(`Generating complete CSV report for: ${nom}${equipe ? ` in team ${equipe}` : ''}`);
+      
+      const profile = await csvPlayerAnalyzer.getCompletePlayerProfile(nom, equipe);
+      
+      if (profile.error) {
+        res.status(404).json({
+          status: "error",
+          message: profile.error
+        });
+      } else {
+        res.json({
+          status: "success",
+          joueur: profile.informations_personnelles,
+          statistiques: {
+            base: profile.statistiques_base,
+            avancees: profile.statistiques_avancees
+          },
+          analyse: profile.analyse_performance,
+          percentiles: profile.percentiles,
+          zones_activite: profile.zones_activite,
+          note_globale: profile.note_globale,
+          style_jeu: profile.style_jeu,
+          forces: profile.forces,
+          faiblesses: profile.faiblesses
+        });
+      }
+    } catch (error) {
+      console.error('Error in CSV complete report generation:', error);
       res.status(500).json({
         status: "error",
         message: error.message || "Erreur lors de la génération du rapport"

@@ -8,6 +8,7 @@ import PlayerProfile from "@/pages/PlayerProfile";
 import Comparison from "@/pages/Comparison";
 import Teams from "@/pages/Teams";
 import Leagues from "@/pages/Leagues";
+import CSVAnalyzer from "@/pages/CSVAnalyzer";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/comparison/:id?" component={Comparison} />
       <Route path="/teams" component={Teams} />
       <Route path="/leagues" component={Leagues} />
+      <Route path="/csv-analyzer" component={CSVAnalyzer} />
       <Route component={NotFound} />
     </Switch>
   );
