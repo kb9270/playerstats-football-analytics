@@ -138,9 +138,31 @@ export class CSVDirectAnalyzer {
 
   async getPlayerByName(name: string): Promise<PlayerData | null> {
     await this.loadData();
-    return this.playersData.find(player => 
-      player.Player?.toLowerCase() === name.toLowerCase()
-    ) || null;
+    const searchName = decodeURIComponent(name).trim().toLowerCase();
+    
+    // Recherche exacte d'abord
+    let player = this.playersData.find(player => 
+      player.Player?.trim().toLowerCase() === searchName
+    );
+    
+    // Si pas trouvé, recherche partielle
+    if (!player) {
+      player = this.playersData.find(player => 
+        player.Player?.trim().toLowerCase().includes(searchName) ||
+        searchName.includes(player.Player?.trim().toLowerCase() || '')
+      );
+    }
+    
+    // Si toujours pas trouvé, recherche par mots-clés
+    if (!player) {
+      const searchWords = searchName.split(' ').filter(word => word.length > 2);
+      player = this.playersData.find(player => {
+        const playerName = player.Player?.trim().toLowerCase() || '';
+        return searchWords.every(word => playerName.includes(word));
+      });
+    }
+    
+    return player || null;
   }
 
   async getPlayersByTeam(team: string): Promise<PlayerData[]> {

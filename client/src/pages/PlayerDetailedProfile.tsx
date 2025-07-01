@@ -30,8 +30,8 @@ interface PlayerAnalysis {
 }
 
 export default function PlayerDetailedProfile() {
-  const { playerName } = useParams();
-  const decodedPlayerName = decodeURIComponent(playerName as string).trim();
+  const { id } = useParams();
+  const decodedPlayerName = decodeURIComponent(id as string).trim();
 
   // Obtenir les données CSV pour débugger
   const { data: csvData } = useQuery({
@@ -40,8 +40,8 @@ export default function PlayerDetailedProfile() {
   });
 
   const { data: playerAnalysis, isLoading } = useQuery<PlayerAnalysis>({
-    queryKey: [`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/analysis`],
-    enabled: !!playerName,
+    queryKey: [`/api/csv-direct/player/${id}/analysis`],
+    enabled: !!id,
   });
 
   // Debug: afficher les noms dans la console
@@ -49,11 +49,12 @@ export default function PlayerDetailedProfile() {
     if (csvData?.stats?.allPlayers) {
       console.log("DEBUG noms CSV :", csvData.stats.allPlayers.slice(0, 10).map((p: any) => p.Player));
       console.log("DEBUG reçu depuis URL :", decodedPlayerName);
+      console.log("DEBUG id brut :", id);
     }
-  }, [csvData, decodedPlayerName]);
+  }, [csvData, decodedPlayerName, id]);
 
   const handleDownloadPDF = () => {
-    window.open(`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/pdf`, '_blank');
+    window.open(`/api/csv-direct/player/${id}/pdf`, '_blank');
   };
 
   const handlePrint = () => {
