@@ -1,0 +1,323 @@
+
+import { useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Download, MapPin, Calendar, Flag, User, Target, BarChart3 } from "lucide-react";
+
+interface PlayerAnalysis {
+  analysis: {
+    player: {
+      Player: string;
+      Squad: string;
+      Nation: string;
+      Pos: string;
+      Age: number;
+      Gls: number;
+      Ast: number;
+      MP: number;
+      Min: number;
+      [key: string]: any;
+    };
+    percentiles: { [key: string]: number };
+    strengths: string[];
+    weaknesses: string[];
+    overallRating: number;
+  };
+}
+
+export default function PlayerDetailedProfile() {
+  const { playerName } = useParams();
+  const decodedPlayerName = decodeURIComponent(playerName as string);
+
+  const { data: playerAnalysis, isLoading } = useQuery<PlayerAnalysis>({
+    queryKey: [`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/analysis`],
+    enabled: !!playerName,
+  });
+
+  const handleDownloadPDF = () => {
+    window.open(`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/pdf`, '_blank');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Skeleton className="h-32 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-96 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!playerAnalysis) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <h1 className="text-2xl font-bold mb-4">Joueur non trouvé</h1>
+          <p>Impossible de charger les données pour {decodedPlayerName}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { player, percentiles, strengths, weaknesses, overallRating } = playerAnalysis.analysis;
+
+  const getPercentileColor = (value: number) => {
+    if (value >= 80) return 'bg-green-500';
+    if (value >= 60) return 'bg-yellow-500';
+    if (value >= 40) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const getPercentileTextColor = (value: number) => {
+    if (value >= 80) return 'text-green-400';
+    if (value >= 60) return 'text-yellow-400';
+    if (value >= 40) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
+      {/* Header avec boutons d'actions */}
+      <div className="bg-black/20 backdrop-blur-sm border-b border-gray-700 p-4 print:hidden">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold">PROFIL JOUEUR</h1>
+          <div className="flex gap-4">
+            <Button 
+              onClick={handlePrint}
+              variant="outline" 
+              className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Imprimer
+            </Button>
+            <Button 
+              onClick={handleDownloadPDF}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Télécharger PDF
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-8 space-y-8">
+        {/* Profil Principal */}
+        <Card className="bg-gradient-to-r from-pink-900/50 to-purple-900/50 border-pink-500/30">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold">
+                    {player.Player.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </span>
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold mb-2" style={{ color: '#ff1493' }}>
+                    {player.Player.toUpperCase()}
+                  </h1>
+                  <div className="flex items-center space-x-4 text-lg">
+                    <Badge className="bg-blue-600 text-white">{player.Squad}</Badge>
+                    <Badge className="bg-purple-600 text-white">{player.Pos}</Badge>
+                    <span className="text-gray-300">{player.Age} ANS</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="bg-green-500 text-black px-4 py-2 rounded-lg font-bold text-xl mb-2">
+                  {Math.round(overallRating)}/100
+                </div>
+                <div className="text-sm text-gray-300">NOTE GLOBALE</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Flag className="w-4 h-4 text-pink-400" />
+                  <span className="text-gray-300">Nationalité:</span>
+                  <span className="font-semibold">{player.Nation}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-pink-400" />
+                  <span className="text-gray-300">Club:</span>
+                  <span className="font-semibold">{player.Squad}</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Target className="w-4 h-4 text-pink-400" />
+                  <span className="text-gray-300">Position:</span>
+                  <span className="font-semibold">{player.Pos}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-pink-400" />
+                  <span className="text-gray-300">Âge:</span>
+                  <span className="font-semibold">{player.Age} ans</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-pink-400">{player.Gls}</div>
+                  <div className="text-sm text-gray-300">Buts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-400">{player.Ast}</div>
+                  <div className="text-sm text-gray-300">Passes D.</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Statistiques de base */}
+        <Card className="bg-black/40 border-gray-700">
+          <CardContent className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center">
+              <BarChart3 className="w-6 h-6 mr-3 text-green-400" />
+              DONNÉES DE PERFORMANCES 2024/2025
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white mb-2">{player.MP}</div>
+                <div className="text-sm text-gray-400">MATCHS</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-400 mb-2">{player.Gls}</div>
+                <div className="text-sm text-gray-400">BUTS</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-400 mb-2">{player.Ast}</div>
+                <div className="text-sm text-gray-400">PASSES DÉCISIVES</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-400 mb-2">{player.Min}</div>
+                <div className="text-sm text-gray-400">MINUTES</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rapport de Scouting */}
+        <Card className="bg-black/40 border-gray-700">
+          <CardContent className="p-6">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: '#ff1493' }}>
+              RAPPORT DE SCOUTING
+            </h2>
+            <div className="text-sm text-gray-400 mb-6">
+              En comparaison aux joueurs évoluant au même poste - Saison 2024/2025
+              <br />
+              Statistiques par 90' & Centile
+            </div>
+            
+            <div className="space-y-4">
+              {Object.entries(percentiles).map(([key, value]) => {
+                const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+                const percentage = typeof value === 'number' ? Math.round(value) : 0;
+                
+                return (
+                  <div key={key} className="flex items-center space-x-4">
+                    <div className="w-48 text-sm font-medium">
+                      {key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+                    </div>
+                    <div className={`w-16 text-right font-bold ${getPercentileTextColor(percentage)}`}>
+                      {displayValue}
+                    </div>
+                    <div className="flex-1 max-w-md">
+                      <div className="w-full bg-gray-700 rounded-full h-6 relative">
+                        <div 
+                          className={`h-6 rounded-full ${getPercentileColor(percentage)} transition-all duration-500`}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                          {percentage}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-900/30 rounded-lg">
+              <div className="flex items-center space-x-2 text-sm text-blue-300">
+                <span className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-xs">i</span>
+                <span>
+                  Un 95 signifie que le joueur est meilleur que 95% des joueurs dans cette catégorie.
+                  Toutes les statistiques sont ramenées à 90 minutes.
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Points Forts et Faibles */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-green-900/20 border-green-500/30">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-green-400 mb-4">POINTS FORTS</h3>
+              <div className="space-y-2">
+                {strengths.slice(0, 5).map((strength, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full" />
+                    <span className="text-sm">{strength}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-red-900/20 border-red-500/30">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-red-400 mb-4">POINTS À AMÉLIORER</h3>
+              <div className="space-y-2">
+                {weaknesses.slice(0, 5).map((weakness, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-red-400 rounded-full" />
+                    <span className="text-sm">{weakness}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-gray-400 text-sm mt-8 pb-8 print:block">
+          <div className="border-t border-gray-700 pt-4">
+            <p>Source: FBREF.COM • Données saison 2024/2025</p>
+            <p>Généré par PlayerStats Analytics Platform</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Styles pour l'impression */}
+      <style jsx>{`
+        @media print {
+          body { 
+            background: white !important; 
+            color: black !important; 
+          }
+          .bg-gradient-to-br { background: white !important; }
+          .bg-black\\/40 { background: white !important; border: 1px solid #ccc !important; }
+          .text-white { color: black !important; }
+          .text-gray-300 { color: #666 !important; }
+          .text-gray-400 { color: #777 !important; }
+          .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+        }
+      `}</style>
+    </div>
+  );
+}

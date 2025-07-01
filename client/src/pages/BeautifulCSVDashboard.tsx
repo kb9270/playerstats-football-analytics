@@ -174,7 +174,7 @@ export default function BeautifulCSVDashboard() {
                     <div 
                       key={index}
                       className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:shadow-md"
-                      onClick={() => setSelectedPlayer(player.Player)}
+                      onClick={() => window.open(`/player-profile/${encodeURIComponent(player.Player)}`, '_blank')}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import PlayerProfile from "@/pages/PlayerProfile";
+import PlayerDetailedProfile from "@/pages/PlayerDetailedProfile";
 import Comparison from "@/pages/Comparison";
 import Teams from "@/pages/Teams";
 import Leagues from "@/pages/Leagues";
@@ -20,9 +21,10 @@ function Router() {
       <Route path="/" component={BeautifulCSVDashboard} />
       <Route path="/old-home" component={Home} />
       <Route path="/player/:id" component={PlayerProfile} />
-      <Route path="/comparison/:id?" component={Comparison} />
+      <Route path="/player-profile/:playerName" component={PlayerDetailedProfile} />
       <Route path="/teams" component={Teams} />
       <Route path="/leagues" component={Leagues} />
+      <Route path="/comparison/:id?" component={Comparison} />
       <Route path="/csv-analyzer" component={CSVAnalyzer} />
       <Route path="/streamlit-style" component={StreamlitEquivalent} />
       <Route path="/matches" component={MatchAnalyzer} />
