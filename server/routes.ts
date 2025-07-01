@@ -8,6 +8,7 @@ import { enhancedSoccerDataService } from "./services/enhancedSoccerDataService"
 import { enhancedReportService } from "./services/enhancedReportService";
 import { aiService } from "./services/aiService";
 import { csvPlayerAnalyzer } from "./services/csvPlayerAnalyzer";
+import { csvDirectAnalyzer } from "./services/csvDirectAnalyzer";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -686,6 +687,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "error",
         message: error.message || "Erreur lors de la génération du rapport"
       });
+    }
+  });
+
+  // ====== NOUVELLES ROUTES CSV DIRECTES ======
+  
+  // Route pour chercher des joueurs directement dans le CSV
+  app.get("/api/csv-direct/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: 'Query parameter required' });
+      }
+      
+      const players = await csvDirectAnalyzer.searchPlayers(q);
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error('Error searching players:', error);
+      res.status(500).json({ error: 'Error searching players' });
+    }
+  });
+
+  // Route pour obtenir l'analyse complète d'un joueur
+  app.get("/api/csv-direct/player/:name", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+      
+      const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
+      res.json({ success: true, analysis });
+    } catch (error) {
+      console.error('Error getting player analysis:', error);
+      res.status(500).json({ error: 'Error getting player analysis' });
+    }
+  });
+
+  // Route pour les statistiques des ligues
+  app.get("/api/csv-direct/leagues", async (req, res) => {
+    try {
+      const stats = await csvDirectAnalyzer.getLeagueStats();
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Error getting league stats:', error);
+      res.status(500).json({ error: 'Error getting league stats' });
+    }
+  });
+
+  // Route pour les statistiques des équipes
+  app.get("/api/csv-direct/teams", async (req, res) => {
+    try {
+      const stats = await csvDirectAnalyzer.getTeamStats();
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Error getting team stats:', error);
+      res.status(500).json({ error: 'Error getting team stats' });
+    }
+  });
+
+  // Route pour les meilleurs buteurs
+  app.get("/api/csv-direct/top-scorers", async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+      const players = await csvDirectAnalyzer.getTopScorers(Number(limit));
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error('Error getting top scorers:', error);
+      res.status(500).json({ error: 'Error getting top scorers' });
+    }
+  });
+
+  // Route pour les meilleurs passeurs
+  app.get("/api/csv-direct/top-assists", async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+      const players = await csvDirectAnalyzer.getTopAssists(Number(limit));
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error('Error getting top assists:', error);
+      res.status(500).json({ error: 'Error getting top assists' });
+    }
+  });
+
+  // Route pour les joueurs par équipe
+  app.get("/api/csv-direct/team/:teamName", async (req, res) => {
+    try {
+      const { teamName } = req.params;
+      const players = await csvDirectAnalyzer.getPlayersByTeam(teamName);
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error('Error getting team players:', error);
+      res.status(500).json({ error: 'Error getting team players' });
+    }
+  });
+
+  // Route pour les joueurs par position
+  app.get("/api/csv-direct/position/:position", async (req, res) => {
+    try {
+      const { position } = req.params;
+      const players = await csvDirectAnalyzer.getPlayersByPosition(position);
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error('Error getting position players:', error);
+      res.status(500).json({ error: 'Error getting position players' });
     }
   });
 

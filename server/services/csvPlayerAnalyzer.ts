@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class CSVPlayerAnalyzer {
   private pythonScriptPath = path.join(__dirname, '../python/enhanced_player_analyzer.py');
-  private csvDataPath = path.join(process.cwd(), 'players_data-2024_2025_1751387048911.csv');
+  private csvDataPath = path.join(process.cwd(), 'players_data_light.csv');
 
   async searchPlayer(playerName: string, team?: string): Promise<any> {
     try {

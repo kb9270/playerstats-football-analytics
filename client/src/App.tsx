@@ -10,12 +10,14 @@ import Teams from "@/pages/Teams";
 import Leagues from "@/pages/Leagues";
 import CSVAnalyzer from "@/pages/CSVAnalyzer";
 import StreamlitEquivalent from "@/pages/StreamlitEquivalent";
+import BeautifulCSVDashboard from "@/pages/BeautifulCSVDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={BeautifulCSVDashboard} />
+      <Route path="/old-home" component={Home} />
       <Route path="/player/:id" component={PlayerProfile} />
       <Route path="/comparison/:id?" component={Comparison} />
       <Route path="/teams" component={Teams} />
