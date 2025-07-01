@@ -175,8 +175,10 @@ export default function BeautifulCSVDashboard() {
                       key={index}
                       className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:shadow-md"
                       onClick={() => {
-                        const playerName = encodeURIComponent(player.Player);
-                        window.open(`/joueur/${playerName}`, '_blank');
+                        // Assure-toi que tu envoies exactement le champ Player sans espace ou caract. spéciaux
+                        const safeId = encodeURIComponent(player.Player.trim());
+                        console.log("Redirection vers:", `/joueur/${safeId}`, "pour joueur:", player.Player);
+                        window.open(`/joueur/${safeId}`, "_blank");
                       }}
                     >
                       <div className="flex items-center justify-between">
@@ -486,8 +488,9 @@ export default function BeautifulCSVDashboard() {
                       key={index} 
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                       onClick={() => {
-                        const playerName = encodeURIComponent(player.Player);
-                        window.open(`/joueur/${playerName}`, '_blank');
+                        const safeId = encodeURIComponent(player.Player.trim());
+                        console.log("Redirection Top Buteurs vers:", `/joueur/${safeId}`, "pour joueur:", player.Player);
+                        window.open(`/joueur/${safeId}`, "_blank");
                       }}
                     >
                       <div className="flex items-center space-x-3">
@@ -528,8 +531,10 @@ export default function BeautifulCSVDashboard() {
                     key={index}
                     className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                     onClick={() => {
-                      const playerName = encodeURIComponent(player.Player);
-                      window.open(`/joueur/${playerName}`, '_blank');
+                      // Assure-toi que tu envoies exactement le champ Player sans espace ou caract. spéciaux
+                      const safeId = encodeURIComponent(player.Player.trim());
+                      console.log("Redirection vers:", `/joueur/${safeId}`, "pour joueur:", player.Player);
+                      window.open(`/joueur/${safeId}`, "_blank");
                     }}
                   >
                     <div className="flex items-center justify-between">

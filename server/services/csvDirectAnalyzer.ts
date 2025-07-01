@@ -71,27 +71,27 @@ export class CSVDirectAnalyzer {
       const csvContent = fs.readFileSync(this.csvPath, 'utf-8');
       const lines = csvContent.split('\n');
       const headers = lines[0].split(',');
-      
+
       this.playersData = lines.slice(1).filter(line => line.trim()).map(line => {
         const values = this.parseCSVLine(line);
         const player: any = {};
-        
+
         headers.forEach((header, index) => {
           let value: any = values[index] || '';
-          
+
           // Convert numeric fields
           if (!isNaN(Number(value)) && value !== '') {
             value = Number(value);
           } else if (value === '') {
             value = null;
           }
-          
+
           player[header.trim()] = value;
         });
-        
+
         return player as PlayerData;
       });
-      
+
       this.loaded = true;
     } catch (error) {
       console.error('Error loading CSV data:', error);
@@ -103,10 +103,10 @@ export class CSVDirectAnalyzer {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
         inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
@@ -116,7 +116,7 @@ export class CSVDirectAnalyzer {
         current += char;
       }
     }
-    
+
     result.push(current.trim());
     return result;
   }
@@ -129,7 +129,7 @@ export class CSVDirectAnalyzer {
   async searchPlayers(query: string): Promise<PlayerData[]> {
     await this.loadData();
     const searchTerm = query.toLowerCase();
-    
+
     return this.playersData.filter(player => 
       player.Player?.toLowerCase().includes(searchTerm) ||
       player.Squad?.toLowerCase().includes(searchTerm)
@@ -176,13 +176,13 @@ export class CSVDirectAnalyzer {
   async getLeagueStats(): Promise<any> {
     await this.loadData();
     const leagues: Record<string, number> = {};
-    
+
     this.playersData.forEach(player => {
       if (player.Comp) {
         leagues[player.Comp] = (leagues[player.Comp] || 0) + 1;
       }
     });
-    
+
     return {
       totalPlayers: this.playersData.length,
       leagues,
@@ -195,13 +195,13 @@ export class CSVDirectAnalyzer {
   async getTeamStats(): Promise<any> {
     await this.loadData();
     const teams: Record<string, number> = {};
-    
+
     this.playersData.forEach(player => {
       if (player.Squad) {
         teams[player.Squad] = (teams[player.Squad] || 0) + 1;
       }
     });
-    
+
     return {
       totalTeams: Object.keys(teams).length,
       teams,
@@ -221,7 +221,7 @@ export class CSVDirectAnalyzer {
     const calculatePercentile = (value: number, values: number[]): number => {
       const sorted = values.filter(v => v !== null && !isNaN(v)).sort((a, b) => a - b);
       if (sorted.length === 0) return 0;
-      
+
       const rank = sorted.filter(v => v < value).length;
       return Math.round((rank / sorted.length) * 100);
     };
@@ -242,7 +242,7 @@ export class CSVDirectAnalyzer {
 
   generatePlayerAnalysis(player: PlayerData): any {
     const percentiles = this.calculatePercentiles(player, player.Pos?.split(',')[0] || 'MF');
-    
+
     // Analyse des forces et faiblesses
     const strengths: string[] = [];
     const weaknesses: string[] = [];

@@ -1,4 +1,5 @@
 
+import React from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,12 +31,26 @@ interface PlayerAnalysis {
 
 export default function PlayerDetailedProfile() {
   const { playerName } = useParams();
-  const decodedPlayerName = decodeURIComponent(playerName as string);
+  const decodedPlayerName = decodeURIComponent(playerName as string).trim();
+
+  // Obtenir les données CSV pour débugger
+  const { data: csvData } = useQuery({
+    queryKey: ['/api/csv-direct/leagues'],
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: playerAnalysis, isLoading } = useQuery<PlayerAnalysis>({
     queryKey: [`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/analysis`],
     enabled: !!playerName,
   });
+
+  // Debug: afficher les noms dans la console
+  React.useEffect(() => {
+    if (csvData?.stats?.allPlayers) {
+      console.log("DEBUG noms CSV :", csvData.stats.allPlayers.slice(0, 10).map((p: any) => p.Player));
+      console.log("DEBUG reçu depuis URL :", decodedPlayerName);
+    }
+  }, [csvData, decodedPlayerName]);
 
   const handleDownloadPDF = () => {
     window.open(`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/pdf`, '_blank');
