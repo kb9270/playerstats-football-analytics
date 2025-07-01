@@ -174,7 +174,10 @@ export default function BeautifulCSVDashboard() {
                     <div 
                       key={index}
                       className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:shadow-md"
-                      onClick={() => window.open(`/player-profile/${encodeURIComponent(player.Player)}`, '_blank')}
+                      onClick={() => {
+                        const playerName = encodeURIComponent(player.Player);
+                        window.open(`/player-profile/${playerName}`, '_blank');
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -482,7 +485,10 @@ export default function BeautifulCSVDashboard() {
                     <div 
                       key={index} 
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                      onClick={() => setSelectedPlayer(player.Player)}
+                      onClick={() => {
+                        const playerName = encodeURIComponent(player.Player);
+                        window.open(`/player-profile/${playerName}`, '_blank');
+                      }}
                     >
                       <div className="flex items-center space-x-3">
                         <Badge variant={index === 0 ? "default" : "secondary"}>
@@ -521,7 +527,10 @@ export default function BeautifulCSVDashboard() {
                   <div 
                     key={index}
                     className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                    onClick={() => setSelectedPlayer(player.Player)}
+                    onClick={() => {
+                      const playerName = encodeURIComponent(player.Player);
+                      window.open(`/player-profile/${playerName}`, '_blank');
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
