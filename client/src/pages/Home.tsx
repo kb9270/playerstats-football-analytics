@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, TrendingUp, Users, Target } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Home() {
   return (
@@ -74,7 +75,7 @@ export default function Home() {
             Recherches <span className="text-stats-accent">Populaires</span>
           </h2>
           
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4 mb-12">
             {[
               "Kylian Mbappé",
               "Erling Haaland",
@@ -92,6 +93,37 @@ export default function Home() {
                 {name}
               </button>
             ))}
+          </div>
+          
+          {/* Additional Analysis Options */}
+          <div className="flex justify-center gap-6 mt-16">
+            <Link href="/dashboard">
+              <Card className="stats-card p-8 text-center hover:scale-105 transition-transform cursor-pointer">
+                <CardContent className="pt-6">
+                  <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-10 h-10 text-blue-400" />
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-3">Analyse CSV Avancée</h3>
+                  <p className="text-gray-400">
+                    Plus de 2800 joueurs européens avec analyses complètes
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link href="/matches">
+              <Card className="stats-card p-8 text-center hover:scale-105 transition-transform cursor-pointer">
+                <CardContent className="pt-6">
+                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-10 h-10 text-green-400" />
+                  </div>
+                  <h3 className="text-2xl font-semibold mb-3">Analyse de Matchs</h3>
+                  <p className="text-gray-400">
+                    Données ELO et analyse de 3 années de matchs européens
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>

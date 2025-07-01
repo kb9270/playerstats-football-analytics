@@ -9,6 +9,8 @@ import { enhancedReportService } from "./services/enhancedReportService";
 import { aiService } from "./services/aiService";
 import { csvPlayerAnalyzer } from "./services/csvPlayerAnalyzer";
 import { csvDirectAnalyzer } from "./services/csvDirectAnalyzer";
+import { csvMatchAnalyzer } from "./services/csvMatchAnalyzer";
+import { pdfPlayerCard } from "./services/pdfPlayerCard";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -793,6 +795,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting position players:', error);
       res.status(500).json({ error: 'Error getting position players' });
+    }
+  });
+
+  // CSV Match Analysis Routes
+  app.get("/api/matches/search", async (req, res) => {
+    try {
+      const query = req.query.q;
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Query parameter required" });
+      }
+      
+      const matches = await csvMatchAnalyzer.searchMatches(query);
+      res.json({ success: true, matches });
+    } catch (error) {
+      console.error('Error searching matches:', error);
+      res.status(500).json({ error: "Failed to search matches" });
+    }
+  });
+
+  app.get("/api/matches/recent", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const matches = await csvMatchAnalyzer.getRecentMatches(limit);
+      res.json({ success: true, matches });
+    } catch (error) {
+      console.error('Error getting recent matches:', error);
+      res.status(500).json({ error: "Failed to get recent matches" });
+    }
+  });
+
+  app.get("/api/matches/team/:teamName", async (req, res) => {
+    try {
+      const { teamName } = req.params;
+      const matches = await csvMatchAnalyzer.getMatchesByTeam(teamName);
+      res.json({ success: true, matches });
+    } catch (error) {
+      console.error('Error getting team matches:', error);
+      res.status(500).json({ error: "Failed to get team matches" });
+    }
+  });
+
+  app.get("/api/matches/analysis/:homeTeam/:awayTeam", async (req, res) => {
+    try {
+      const { homeTeam, awayTeam } = req.params;
+      const analysis = await csvMatchAnalyzer.getMatchAnalysis(homeTeam, awayTeam);
+      res.json({ success: true, analysis });
+    } catch (error) {
+      console.error('Error getting match analysis:', error);
+      res.status(500).json({ error: "Failed to get match analysis" });
+    }
+  });
+
+  app.get("/api/matches/leagues", async (req, res) => {
+    try {
+      const stats = await csvMatchAnalyzer.getLeagueStats();
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Error getting league stats:', error);
+      res.status(500).json({ error: "Failed to get league stats" });
+    }
+  });
+
+  app.get("/api/matches/top-scorers", async (req, res) => {
+    try {
+      const scorers = await csvMatchAnalyzer.getTopScorers();
+      res.json({ success: true, scorers });
+    } catch (error) {
+      console.error('Error getting top scorers:', error);
+      res.status(500).json({ error: "Failed to get top scorers" });
+    }
+  });
+
+  app.get("/api/matches/elo-rankings", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const rankings = await csvMatchAnalyzer.getEloRankings(limit);
+      res.json({ success: true, rankings });
+    } catch (error) {
+      console.error('Error getting ELO rankings:', error);
+      res.status(500).json({ error: "Failed to get ELO rankings" });
+    }
+  });
+
+  // Player PDF Generation Route
+  app.get("/api/csv-direct/player/:name/pdf", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+      
+      const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
+      const pdfHtml = await pdfPlayerCard.generatePlayerCard({
+        ...player,
+        ...analysis,
+        overallRating: analysis.overallRating || 75
+      });
+      
+      // Set headers for HTML preview
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(pdfHtml);
+    } catch (error) {
+      console.error('Error generating player PDF:', error);
+      res.status(500).json({ error: 'Error generating player PDF' });
     }
   });
 
