@@ -9,6 +9,7 @@ import Comparison from "@/pages/Comparison";
 import Teams from "@/pages/Teams";
 import Leagues from "@/pages/Leagues";
 import CSVAnalyzer from "@/pages/CSVAnalyzer";
+import StreamlitEquivalent from "@/pages/StreamlitEquivalent";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/teams" component={Teams} />
       <Route path="/leagues" component={Leagues} />
       <Route path="/csv-analyzer" component={CSVAnalyzer} />
+      <Route path="/streamlit-style" component={StreamlitEquivalent} />
       <Route component={NotFound} />
     </Switch>
   );

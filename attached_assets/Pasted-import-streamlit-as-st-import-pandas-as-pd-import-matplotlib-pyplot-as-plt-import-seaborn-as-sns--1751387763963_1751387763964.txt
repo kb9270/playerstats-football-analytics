@@ -1,0 +1,62 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Config Streamlit
+st.set_page_config(layout="wide")
+st.title("📊 Fiche Joueur - Saison 2024/25")
+
+# ⬆️ Upload du fichier CSV
+uploaded_file = st.file_uploader("Charge ton fichier CSV de joueurs", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    # ➕ Sélection joueur
+    joueur = st.selectbox("Choisis un joueur", sorted(df["Player"].unique()))
+    data = df[df["Player"] == joueur].squeeze()
+
+    st.header(f"🧑‍💼 {joueur} - {data['Team']} ({data['Position']})")
+
+    st.markdown(f"""
+    **Âge** : {data['Age']} ans  
+    **Taille** : {data.get('Height', '—')}  
+    **Pied fort** : {data.get('Foot', '—')}  
+    **Note moyenne** : {data.get('Rating', '—')}  
+    """)
+
+    # 🎯 Statistiques par 90 minutes
+    st.subheader("📈 Statistiques avancées (par 90 min) + Percentiles")
+
+    cols_metrics = [
+        ("Buts", "Goals_per90", "Percentile_Goals"),
+        ("Passes déc.", "Assists_per90", "Percentile_Assists"),
+        ("Dribbles réussis", "Dribbles_per90", "Percentile_Dribbles"),
+        ("Centres", "Crosses_per90", "Percentile_Crosses"),
+        ("Passes progressives", "Progressive_passes_per90", "Percentile_Progressive_Passes"),
+        ("Tacles", "Tackles_per90", "Percentile_Tackles"),
+        ("Interceptions", "Interceptions_per90", "Percentile_Interceptions"),
+        ("Limite de déchet", "Passes_completed_pct", "Percentile_Pass_Completion"),
+    ]
+
+    for label, col_val, col_pct in cols_metrics:
+        val = round(data[col_val], 2) if col_val in data else None
+        pct = int(data[col_pct]) if col_pct in data else None
+        if val is not None and pct is not None:
+            color = "🟥" if pct < 40 else "🟨" if pct < 70 else "🟩"
+            st.write(f"**{label}** : {val} / 90 min — {color} {pct}ᵉ percentile")
+            st.progress(pct / 100)
+
+    # 🧠 Analyse automatique
+    st.markdown("---")
+    st.subheader("🧠 Résumé analytique")
+    if data["Percentile_Dribbles"] > 80 and data["Percentile_Assists"] > 80:
+        st.success("Joueur créatif, fort en 1v1, excellent dans la dernière passe.")
+    elif data["Percentile_Tackles"] > 70:
+        st.success("Joueur très actif à la récupération.")
+    else:
+        st.info("Profil équilibré. Potentiel à développer dans un système adapté.")
+
+    st.markdown("---")
+    st.caption("Généré automatiquement à partir des données CSV 2024/25 — Projet de Khalil 🧬")
