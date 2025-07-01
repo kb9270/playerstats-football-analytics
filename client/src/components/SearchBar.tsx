@@ -59,7 +59,7 @@ export default function SearchBar({ onPlayerSelect }: SearchBarProps) {
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            setShowResults(e.target.value.length > 2);
+            setShowResults(e.target.value.length > 2 && e.target.value.trim().length > 0);
           }}
           className="w-full px-6 py-4 search-input rounded-xl text-blue-100 placeholder-blue-300 focus:outline-none transition-all pr-16"
         />

@@ -88,8 +88,8 @@ export default function BeautifulCSVDashboard() {
 
   // Recherche
   const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ['/api/csv-direct/search', searchQuery],
-    enabled: searchQuery.length > 2,
+    queryKey: [`/api/csv-direct/search?q=${encodeURIComponent(searchQuery)}`],
+    enabled: searchQuery.length > 2 && searchQuery.trim().length > 0,
     staleTime: 30 * 1000, // 30 secondes
   });
 
