@@ -352,7 +352,7 @@ export default function PlayerDetailedProfile() {
         )}
 
         {/* Points Forts et Faibles */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-green-900/20 border-green-500/30">
             <CardContent className="p-6">
               <h3 className="text-xl font-bold text-green-400 mb-4">POINTS FORTS</h3>
