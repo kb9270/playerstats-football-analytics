@@ -1,0 +1,56 @@
+import React, { useState, useEffect } from "react";
+import data from "../data/players_data-2024_2025_1751385208669.csv";
+
+const FicheJoueur = () => {
+  const [joueur, setJoueur] = useState<any>(null);
+  const [comparaison, setComparaison] = useState("Chargement…");
+
+  useEffect(() => {
+    const nomJoueur = "Dilane Bakwa"; // 🔁 Change ici pour tester un autre joueur
+    const found = data.find((j) =>
+      j.Player.toLowerCase().includes(nomJoueur.toLowerCase())
+    );
+    setJoueur(found);
+
+    // 🔥 Dernière requête DeepSeek
+    if (found) {
+      fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer sk-ee7e82da6ed44598ae402d25997c8837",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "user",
+              content: `Analyse le profil du joueur ${found.Player} (club ${found.Team}, poste ${found.Position}, âge ${found.Age}) avec ses stats : ${found.Goals} buts, ${found.Assists} passes, ${found.Dribbles_per90} dribbles/90min. Compare-le à d'autres ailiers européens.`,
+            },
+          ],
+        }),
+      })
+        .then((res) => res.json())
+        .then((res) =>
+          setComparaison(res.choices?.[0]?.message?.content || "Pas de réponse.")
+        )
+        .catch(() => setComparaison("Erreur API."));
+    }
+  }, []);
+
+  if (!joueur) return <div>❌ Joueur non trouvé</div>;
+
+  return (
+    <div style={{ fontFamily: "Arial", padding: "20px" }}>
+      <h2>{joueur.Player}</h2>
+      <p><strong>Club :</strong> {joueur.Team} | <strong>Poste :</strong> {joueur.Position}</p>
+      <p><strong>Age :</strong> {joueur.Age} | <strong>Buts :</strong> {joueur.Goals} | <strong>Passes :</strong> {joueur.Assists}</p>
+      <p><strong>Dribbles / 90min :</strong> {joueur.Dribbles_per90} | <strong>xG :</strong> {joueur.xG}</p>
+      <h3>🧠 Analyse IA</h3>
+      <p>{comparaison}</p>
+      <button onClick={() => window.print()}>🖨️ Imprimer cette fiche</button>
+    </div>
+  );
+};
+
+export default FicheJoueur;
