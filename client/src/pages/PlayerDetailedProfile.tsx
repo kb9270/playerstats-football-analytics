@@ -1,12 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, MapPin, Calendar, Flag, User, Target, BarChart3 } from "lucide-react";
+import { Download, MapPin, Calendar, Flag, User, Target, BarChart3, Brain, Loader2 } from "lucide-react";
 
 interface PlayerAnalysis {
   analysis: {
@@ -32,6 +32,8 @@ interface PlayerAnalysis {
 export default function PlayerDetailedProfile() {
   const { id } = useParams();
   const decodedPlayerName = decodeURIComponent(id as string).trim();
+  const [comparatif, setComparatif] = useState<string>("");
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
 
   // Obtenir les données CSV pour débugger
   const { data: csvData } = useQuery({
@@ -59,6 +61,48 @@ export default function PlayerDetailedProfile() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const generateComparatif = async () => {
+    if (!playerAnalysis) return;
+    
+    setIsGeneratingAnalysis(true);
+    try {
+      const { player } = playerAnalysis.analysis;
+      const prompt = `Fais une analyse détaillée du joueur ${player.Player} (club : ${player.Squad}) basé sur ces statistiques de la saison 2024/2025 : 
+      - Buts: ${player.Gls} en ${player.MP} matchs (${player.Min} minutes)
+      - Passes décisives: ${player.Ast}
+      - xG (Expected Goals): ${player.xG}
+      - xAG (Expected Assists): ${player.xAG}
+      - Position: ${player.Pos}
+      - Âge: ${player.Age} ans
+      - Nationalité: ${player.Nation}
+      - Ligue: ${player.Comp}
+      
+      Compare-le à des joueurs similaires évoluant au même poste en Europe et donne ton avis sur ses points forts, faiblesses et potentiel. Réponds en français, de manière structurée et professionnelle.`;
+
+      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer sk-ee7e82da6ed44598ae402d25997c8837",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
+
+      const data = await response.json();
+      setComparatif(data.choices?.[0]?.message?.content || "Aucune réponse générée.");
+    } catch (error) {
+      console.error("Erreur lors de la génération de l'analyse:", error);
+      setComparatif("Erreur lors de la génération de l'analyse IA.");
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
   };
 
   if (isLoading) {
@@ -110,16 +154,28 @@ export default function PlayerDetailedProfile() {
           <h1 className="text-2xl font-bold">PROFIL JOUEUR</h1>
           <div className="flex gap-4">
             <Button 
+              onClick={generateComparatif}
+              disabled={isGeneratingAnalysis}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isGeneratingAnalysis ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Brain className="w-4 h-4 mr-2" />
+              )}
+              Analyse IA
+            </Button>
+            <Button 
               onClick={handlePrint}
               variant="outline" 
-              className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+              className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600 print:hidden"
             >
               <Download className="w-4 h-4 mr-2" />
               Imprimer
             </Button>
             <Button 
               onClick={handleDownloadPDF}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white print:hidden"
             >
               <Download className="w-4 h-4 mr-2" />
               Télécharger PDF
@@ -278,8 +334,25 @@ export default function PlayerDetailedProfile() {
           </CardContent>
         </Card>
 
+        {/* Analyse IA */}
+        {comparatif && (
+          <Card className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border-purple-500/30">
+            <CardContent className="p-6">
+              <h3 className="text-2xl font-bold text-purple-400 mb-4 flex items-center">
+                <Brain className="w-6 h-6 mr-3" />
+                ANALYSE IA - RAPPORT SCOUT
+              </h3>
+              <div className="prose prose-invert max-w-none">
+                <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  {comparatif}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Points Forts et Faibles */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
           <Card className="bg-green-900/20 border-green-500/30">
             <CardContent className="p-6">
               <h3 className="text-xl font-bold text-green-400 mb-4">POINTS FORTS</h3>
@@ -325,13 +398,14 @@ export default function PlayerDetailedProfile() {
             background: white !important; 
             color: black !important; 
           }
-          .bg-gradient-to-br { background: white !important; }
-          .bg-black\\/40 { background: white !important; border: 1px solid #ccc !important; }
-          .text-white { color: black !important; }
+          .bg-gradient-to-br, .bg-gradient-to-r { background: white !important; }
+          .bg-black\\/40, .bg-purple-900\\/40, .bg-blue-900\\/40 { background: white !important; border: 1px solid #ccc !important; }
+          .text-white, .text-purple-400, .text-blue-400, .text-green-400 { color: black !important; }
           .text-gray-300 { color: #666 !important; }
           .text-gray-400 { color: #777 !important; }
           .print\\:hidden { display: none !important; }
           .print\\:block { display: block !important; }
+          button { display: none !important; }
         }
       `}</style>
     </div>
