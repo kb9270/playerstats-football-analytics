@@ -698,11 +698,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv-direct/search", async (req, res) => {
     try {
       const { q } = req.query;
-      if (!q || typeof q !== 'string') {
-        return res.status(400).json({ error: 'Query parameter required' });
+      if (!q || typeof q !== 'string' || q.trim().length === 0) {
+        return res.status(400).json({ error: 'Query parameter required and must not be empty' });
       }
       
-      const players = await csvDirectAnalyzer.searchPlayers(q);
+      const players = await csvDirectAnalyzer.searchPlayers(q.trim());
       res.json({ success: true, players });
     } catch (error) {
       console.error('Error searching players:', error);
