@@ -126,18 +126,18 @@ export default function BeautifulCSVDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950">
       <div className="container mx-auto py-8 space-y-8">
-        
+
         {/* En-tête héroïque */}
         <div className="text-center space-y-6 py-12">
           <div className="inline-flex items-center space-x-2 bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-full">
             <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <span className="text-sm font-medium text-blue-800 dark:text-blue-300">Football Analytics Platform</span>
           </div>
-          
+
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
             Analyseur de Joueurs
           </h1>
-          
+
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
             Explorez les données complètes de <span className="font-semibold text-blue-600 dark:text-blue-400">2800+ joueurs européens</span> avec 
             des analyses avancées, percentiles par position et insights tactiques
@@ -164,7 +164,7 @@ export default function BeautifulCSVDashboard() {
                 {isSearching ? "Recherche..." : "Rechercher"}
               </Button>
             </div>
-            
+
             {/* Résultats de recherche */}
             {searchResults?.success && searchResults.players && searchResults.players.length > 0 && (
               <div className="mt-6 space-y-3">
@@ -176,7 +176,7 @@ export default function BeautifulCSVDashboard() {
                       className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:shadow-md"
                       onClick={() => {
                         const playerName = encodeURIComponent(player.Player);
-                        window.open(`/player-profile/${playerName}`, '_blank');
+                        window.open(`/joueur/${playerName}`, '_blank');
                       }}
                     >
                       <div className="flex items-center justify-between">
@@ -270,7 +270,7 @@ export default function BeautifulCSVDashboard() {
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -391,7 +391,7 @@ export default function BeautifulCSVDashboard() {
                           </div>
                         </div>
                       )}
-                      
+
                       {playerAnalysis.analysis.weaknesses.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
@@ -487,7 +487,7 @@ export default function BeautifulCSVDashboard() {
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                       onClick={() => {
                         const playerName = encodeURIComponent(player.Player);
-                        window.open(`/player-profile/${playerName}`, '_blank');
+                        window.open(`/joueur/${playerName}`, '_blank');
                       }}
                     >
                       <div className="flex items-center space-x-3">
@@ -529,7 +529,7 @@ export default function BeautifulCSVDashboard() {
                     className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                     onClick={() => {
                       const playerName = encodeURIComponent(player.Player);
-                      window.open(`/player-profile/${playerName}`, '_blank');
+                      window.open(`/joueur/${playerName}`, '_blank');
                     }}
                   >
                     <div className="flex items-center justify-between">

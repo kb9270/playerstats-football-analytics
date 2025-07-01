@@ -22,9 +22,10 @@ function Router() {
       <Route path="/old-home" component={Home} />
       <Route path="/player/:id" component={PlayerProfile} />
       <Route path="/player-profile/:playerName" component={PlayerDetailedProfile} />
+      <Route path="/joueur/:playerName" component={PlayerDetailedProfile} />
+      <Route path="/comparison/:id?" component={Comparison} />
       <Route path="/teams" component={Teams} />
       <Route path="/leagues" component={Leagues} />
-      <Route path="/comparison/:id?" component={Comparison} />
       <Route path="/csv-analyzer" component={CSVAnalyzer} />
       <Route path="/streamlit-style" component={StreamlitEquivalent} />
       <Route path="/matches" component={MatchAnalyzer} />
