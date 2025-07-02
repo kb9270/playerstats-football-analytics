@@ -104,6 +104,15 @@ export default function PlayerDetailedProfile() {
     }
   };
 
+  // Always call hooks in the same order
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  const { data: playerAnalysis, isLoading } = useQuery<PlayerAnalysis>({
+    queryKey: [`/api/csv-direct/player/${id}/analysis`],
+    enabled: !!id,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 p-8">
@@ -130,8 +139,7 @@ export default function PlayerDetailedProfile() {
   }
 
   const { player, percentiles, strengths, weaknesses, overallRating } = playerAnalysis.analysis;
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const [loadingAI, setLoadingAI] = useState(false);
+
 
   const getPercentileColor = (value: number) => {
     if (value >= 80) return 'bg-green-500';
