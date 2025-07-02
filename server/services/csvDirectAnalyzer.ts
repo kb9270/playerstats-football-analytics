@@ -451,20 +451,44 @@ export class CSVDirectAnalyzer {
     const currentValue = this.estimateMarketValue(player);
     const projectedValue = this.projectMarketValue(player, progressionAreas);
 
+    // Calculs avancés pour une analyse plus précise
+    const performanceRating = this.calculatePerformanceRating(player);
+    const potentialCeiling = this.calculatePotentialCeiling(player, progressionAreas);
+    const transferProbability = this.calculateTransferProbability(player);
+    
     return {
       progressionAreas,
       timeline: {
         shortTerm: progressionAreas.filter(area => area.timeline.includes('3-6')),
-        mediumTerm: progressionAreas.filter(area => area.timeline.includes('6-12')),
-        longTerm: progressionAreas.filter(area => area.timeline.includes('12-24'))
+        mediumTerm: progressionAreas.filter(area => area.timeline.includes('6-12') || area.timeline.includes('6-18')),
+        longTerm: progressionAreas.filter(area => area.timeline.includes('12-24') || area.timeline.includes('12-36'))
       },
       marketValue: {
         current: currentValue,
         projected: projectedValue,
-        potentialGain: projectedValue - currentValue
+        potentialGain: projectedValue - currentValue,
+        projectedIn2Years: Math.round(projectedValue * 1.2 / 500000) * 500000,
+        confidence: this.calculateMarketValueConfidence(player)
+      },
+      performance: {
+        currentRating: performanceRating,
+        potentialCeiling: potentialCeiling,
+        consistencyScore: this.calculateConsistency(player),
+        improvementAreas: progressionAreas.length
+      },
+      transferMarket: {
+        probability: transferProbability,
+        bestFitLeagues: this.suggestBestFitLeagues(player),
+        estimatedTransferFee: Math.round(currentValue * 1.1 / 500000) * 500000
       },
       riskFactors: this.identifyRiskFactors(player),
-      recommendation: this.generateProgressionRecommendation(player, progressionAreas)
+      recommendation: this.generateProgressionRecommendation(player, progressionAreas),
+      keyMetrics: {
+        goalsPerGame: player.MP > 0 ? (player.Gls / player.MP).toFixed(2) : '0.00',
+        assistsPerGame: player.MP > 0 ? (player.Ast / player.MP).toFixed(2) : '0.00',
+        minutesPerMatch: player.MP > 0 ? Math.round(player.Min / player.MP) : 0,
+        contributionPerGame: player.MP > 0 ? ((player.Gls + player.Ast) / player.MP).toFixed(2) : '0.00'
+      }
     };
   }
 
@@ -599,16 +623,125 @@ export class CSVDirectAnalyzer {
   private generateProgressionRecommendation(player: PlayerData, progressionAreas: any[]): string {
     const age = player.Age || 25;
     const position = player.Pos?.split(',')[0] || 'MF';
+    const goals = player.Gls || 0;
+    const assists = player.Ast || 0;
+    const minutes = player.Min || 0;
+    
+    // Recommandation basée sur le profil réel du joueur
+    let recommendation = `Analyse pour ${player.Player} (${age} ans, ${position}) - `;
     
     if (age < 21) {
-      return "Joueur en développement avec un potentiel élevé. Focus sur la formation complète et l'accumulation d'expérience.";
+      recommendation += "Joueur en plein développement. ";
+      if (minutes > 1500) {
+        recommendation += "Bon temps de jeu pour son âge, continuer à accumuler l'expérience. ";
+      }
+      recommendation += "Focus sur: technique individuelle, compréhension tactique, développement physique.";
     } else if (age < 25) {
-      return `Période critique pour ${position}. Développement ciblé des faiblesses identifiées et consolidation des forces.`;
+      recommendation += "Période décisive de la carrière. ";
+      if (goals + assists > 10) {
+        recommendation += "Statistiques prometteuses, viser la régularité. ";
+      }
+      if (minutes < 2000) {
+        recommendation += "Améliorer le temps de jeu pour franchir un palier. ";
+      }
+      recommendation += "Priorités: consolidation des acquis, spécialisation dans son poste, leadership naissant.";
     } else if (age < 29) {
-      return "Joueur mature. Optimisation des performances et adaptation tactique selon les besoins de l'équipe.";
+      recommendation += "Pic de carrière attendu. ";
+      if (progressionAreas.length > 2) {
+        recommendation += "Plusieurs axes d'amélioration identifiés pour maximiser le potentiel. ";
+      }
+      recommendation += "Objectifs: excellence dans sa spécialité, influence sur l'équipe, ambitions européennes.";
     } else {
-      return "Joueur expérimenté. Gestion de la charge et valorisation de l'expérience pour guider les jeunes.";
+      recommendation += "Joueur mature et expérimenté. ";
+      recommendation += "Focus: transmission d'expérience, adaptation tactique, gestion intelligente de l'effort.";
     }
+    
+    return recommendation;
+  }
+
+  private calculatePerformanceRating(player: PlayerData): number {
+    const percentiles = this.calculatePercentiles(player, player.Pos?.split(',')[0] || 'MF');
+    const avgPercentile = Object.values(percentiles).reduce((a, b) => a + b, 0) / Object.values(percentiles).length;
+    return Math.round(avgPercentile);
+  }
+
+  private calculatePotentialCeiling(player: PlayerData, progressionAreas: any[]): number {
+    const currentRating = this.calculatePerformanceRating(player);
+    const age = player.Age || 25;
+    
+    let ceiling = currentRating;
+    
+    // Bonus d'âge
+    if (age < 21) ceiling += 25;
+    else if (age < 24) ceiling += 15;
+    else if (age < 27) ceiling += 8;
+    else if (age < 30) ceiling += 3;
+    
+    // Bonus selon les domaines d'amélioration
+    ceiling += progressionAreas.length * 5;
+    
+    return Math.min(95, ceiling); // Plafond réaliste
+  }
+
+  private calculateTransferProbability(player: PlayerData): number {
+    const age = player.Age || 25;
+    const goals = player.Gls || 0;
+    const assists = player.Ast || 0;
+    const minutes = player.Min || 0;
+    
+    let probability = 0.1; // Base 10%
+    
+    // Facteurs augmentant la probabilité
+    if (goals + assists > 15) probability += 0.3;
+    else if (goals + assists > 10) probability += 0.2;
+    else if (goals + assists > 5) probability += 0.1;
+    
+    if (age < 26) probability += 0.2;
+    if (minutes > 2000) probability += 0.15;
+    
+    // Clubs attractifs
+    const bigClubs = ['Arsenal', 'Manchester City', 'Liverpool', 'Chelsea'];
+    if (bigClubs.some(club => player.Squad?.includes(club))) {
+      probability -= 0.1; // Moins de chance de partir
+    }
+    
+    return Math.min(0.8, Math.max(0.05, probability));
+  }
+
+  private calculateMarketValueConfidence(player: PlayerData): string {
+    const minutes = player.Min || 0;
+    const matches = player.MP || 0;
+    
+    if (minutes < 500) return 'Faible';
+    if (minutes > 2000 && matches > 20) return 'Élevée';
+    return 'Moyenne';
+  }
+
+  private suggestBestFitLeagues(player: PlayerData): string[] {
+    const currentLeague = player.Comp || '';
+    const goals = player.Gls || 0;
+    const assists = player.Ast || 0;
+    const age = player.Age || 25;
+    
+    const suggestions: string[] = [];
+    
+    if (currentLeague.includes('Premier League')) {
+      if (goals + assists > 10) {
+        suggestions.push('La Liga', 'Serie A', 'Bundesliga');
+      } else {
+        suggestions.push('Championship', 'Ligue 1');
+      }
+    } else if (currentLeague.includes('Ligue 1')) {
+      if (goals + assists > 8 && age < 26) {
+        suggestions.push('Premier League', 'Serie A');
+      } else {
+        suggestions.push('Bundesliga', 'Eredivisie');
+      }
+    } else {
+      suggestions.push('Premier League', 'Ligue 1', 'Serie A');
+    }
+    
+    return suggestions.slice(0, 3);
   }
 
   private getStatDisplayName(stat: string): string {

@@ -571,10 +571,14 @@ export default function PlayerDetailedProfile() {
                 {/* Résumé de comparaison */}
                 <div className="bg-purple-900/20 p-4 rounded-lg">
                   <h3 className="text-lg font-bold text-purple-300 mb-2">Verdict de la comparaison</h3>
-                  <p className="text-gray-300 mb-2">{comparisonData.summary?.recommendation}</p>
-                  <div className="text-lg font-bold text-purple-200">
-                    Gagnant: {comparisonData.summary?.winner} 
-                    <span className="text-sm font-normal ml-2">(Confiance: {comparisonData.summary?.confidence})</span>
+                  <div className="text-lg font-bold text-purple-200 mb-2">
+                    Gagnant: {comparisonData.comparison?.summary?.overallWinner === 'player1' ? comparisonData.comparison?.player1?.Player : comparisonData.comparison?.player2?.Player}
+                  </div>
+                  <div className="text-sm text-gray-300">
+                    {comparisonData.comparison?.summary?.player1Advantages?.length > comparisonData.comparison?.summary?.player2Advantages?.length ? 
+                      `${comparisonData.comparison?.player1?.Player} domine dans ${comparisonData.comparison?.summary?.player1Advantages?.length} catégories` :
+                      `${comparisonData.comparison?.player2?.Player} domine dans ${comparisonData.comparison?.summary?.player2Advantages?.length} catégories`
+                    }
                   </div>
                 </div>
 
@@ -583,19 +587,20 @@ export default function PlayerDetailedProfile() {
                   {/* Joueur 1 */}
                   <div className="bg-gray-800/50 p-4 rounded-lg">
                     <h4 className="font-bold text-blue-300 mb-3">
-                      {comparisonData.comparison?.players?.player1?.name}
+                      {comparisonData.comparison?.player1?.Player}
                     </h4>
                     <div className="space-y-2 text-sm">
-                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.players?.player1?.age} ans</div>
-                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.players?.player1?.team}</div>
-                      <div><span className="text-gray-400">Note:</span> {comparisonData.comparison?.players?.player1?.overallRating}/100</div>
-                      <div><span className="text-gray-400">Valeur:</span> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(comparisonData.comparison?.players?.player1?.marketValue || 0)}</div>
+                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.player1?.Age} ans</div>
+                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.player1?.Squad}</div>
+                      <div><span className="text-gray-400">Position:</span> {comparisonData.comparison?.player1?.Pos}</div>
+                      <div><span className="text-gray-400">Valeur:</span> {comparisonData.comparison?.marketValues?.player1?.formatted}</div>
                     </div>
                     <div className="mt-3">
-                      <div className="text-xs text-gray-400 mb-1">Attaque</div>
-                      <div className="text-sm">
-                        Buts: {comparisonData.comparison?.metrics?.attack?.player1?.goals} | 
-                        Passes: {comparisonData.comparison?.metrics?.attack?.player1?.assists}
+                      <div className="text-xs text-gray-400 mb-1">Statistiques clés</div>
+                      <div className="text-sm space-y-1">
+                        <div>Buts: {comparisonData.comparison?.player1?.Gls || 0}</div>
+                        <div>Passes: {comparisonData.comparison?.player1?.Ast || 0}</div>
+                        <div>Minutes: {comparisonData.comparison?.player1?.Min || 0}</div>
                       </div>
                     </div>
                   </div>
@@ -603,35 +608,74 @@ export default function PlayerDetailedProfile() {
                   {/* Joueur 2 */}
                   <div className="bg-gray-800/50 p-4 rounded-lg">
                     <h4 className="font-bold text-pink-300 mb-3">
-                      {comparisonData.comparison?.players?.player2?.name}
+                      {comparisonData.comparison?.player2?.Player}
                     </h4>
                     <div className="space-y-2 text-sm">
-                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.players?.player2?.age} ans</div>
-                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.players?.player2?.team}</div>
-                      <div><span className="text-gray-400">Note:</span> {comparisonData.comparison?.players?.player2?.overallRating}/100</div>
-                      <div><span className="text-gray-400">Valeur:</span> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(comparisonData.comparison?.players?.player2?.marketValue || 0)}</div>
+                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.player2?.Age} ans</div>
+                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.player2?.Squad}</div>
+                      <div><span className="text-gray-400">Position:</span> {comparisonData.comparison?.player2?.Pos}</div>
+                      <div><span className="text-gray-400">Valeur:</span> {comparisonData.comparison?.marketValues?.player2?.formatted}</div>
                     </div>
                     <div className="mt-3">
-                      <div className="text-xs text-gray-400 mb-1">Attaque</div>
-                      <div className="text-sm">
-                        Buts: {comparisonData.comparison?.metrics?.attack?.player2?.goals} | 
-                        Passes: {comparisonData.comparison?.metrics?.attack?.player2?.assists}
+                      <div className="text-xs text-gray-400 mb-1">Statistiques clés</div>
+                      <div className="text-sm space-y-1">
+                        <div>Buts: {comparisonData.comparison?.player2?.Gls || 0}</div>
+                        <div>Passes: {comparisonData.comparison?.player2?.Ast || 0}</div>
+                        <div>Minutes: {comparisonData.comparison?.player2?.Min || 0}</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Recommandations */}
-                <div className="bg-yellow-900/20 p-4 rounded-lg">
-                  <h3 className="text-lg font-bold text-yellow-300 mb-2">Recommandations</h3>
-                  <p className="text-gray-300 mb-3">{comparisonData.comparison?.recommendations?.forRecruitment}</p>
-                  <div className="space-y-1">
-                    {comparisonData.comparison?.recommendations?.keyDifferences?.map((diff: string, index: number) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                        <span className="text-sm text-gray-300">{diff}</span>
+                {/* Métriques détaillées */}
+                <div className="bg-gray-800/30 p-4 rounded-lg">
+                  <h3 className="text-lg font-bold text-white mb-4">Comparaison détaillée</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {comparisonData.comparison?.metrics?.slice(0, 8).map((metric: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-700/50 rounded">
+                        <span className="text-sm text-gray-300">{metric.displayName}</span>
+                        <div className="flex space-x-4 text-sm">
+                          <span className={metric.player1Value > metric.player2Value ? 'text-green-400 font-bold' : 'text-white'}>
+                            {metric.player1Value}
+                          </span>
+                          <span className="text-gray-500">vs</span>
+                          <span className={metric.player2Value > metric.player1Value ? 'text-green-400 font-bold' : 'text-white'}>
+                            {metric.player2Value}
+                          </span>
+                        </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Forces et faiblesses */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-green-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-bold text-green-300 mb-2">
+                      Forces de {comparisonData.comparison?.player1?.Player}
+                    </h3>
+                    <div className="space-y-1">
+                      {comparisonData.comparison?.summary?.player1Advantages?.slice(0, 5).map((advantage: string, index: number) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full" />
+                          <span className="text-sm text-gray-300">{advantage}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-bold text-blue-300 mb-2">
+                      Forces de {comparisonData.comparison?.player2?.Player}
+                    </h3>
+                    <div className="space-y-1">
+                      {comparisonData.comparison?.summary?.player2Advantages?.slice(0, 5).map((advantage: string, index: number) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                          <span className="text-sm text-gray-300">{advantage}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
