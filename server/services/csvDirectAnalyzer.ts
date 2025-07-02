@@ -70,7 +70,7 @@ export class CSVDirectAnalyzer {
     try {
       const csvContent = fs.readFileSync(this.csvPath, 'utf-8');
       const lines = csvContent.split('\n');
-      const headers = lines[0].split(',');
+      const headers = this.parseCSVLine(lines[0]);
 
       this.playersData = lines.slice(1).filter(line => line.trim()).map(line => {
         const values = this.parseCSVLine(line);
@@ -79,10 +79,15 @@ export class CSVDirectAnalyzer {
         headers.forEach((header, index) => {
           let value: any = values[index] || '';
 
+          // Clean the value
+          if (typeof value === 'string') {
+            value = value.trim();
+          }
+
           // Convert numeric fields
-          if (!isNaN(Number(value)) && value !== '') {
+          if (!isNaN(Number(value)) && value !== '' && value !== null) {
             value = Number(value);
-          } else if (value === '') {
+          } else if (value === '' || value === 'null' || value === 'undefined') {
             value = null;
           }
 
@@ -93,6 +98,7 @@ export class CSVDirectAnalyzer {
       });
 
       this.loaded = true;
+      console.log(`Loaded ${this.playersData.length} players from CSV`);
     } catch (error) {
       console.error('Error loading CSV data:', error);
       throw error;
@@ -103,21 +109,31 @@ export class CSVDirectAnalyzer {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
+    let i = 0;
 
-    for (let i = 0; i < line.length; i++) {
+    while (i < line.length) {
       const char = line[i];
 
       if (char === '"') {
-        inQuotes = !inQuotes;
+        if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+          // Double quote escape
+          current += '"';
+          i += 2;
+        } else {
+          inQuotes = !inQuotes;
+          i++;
+        }
       } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
+        result.push(current.trim().replace(/^"|"$/g, ''));
         current = '';
+        i++;
       } else {
         current += char;
+        i++;
       }
     }
 
-    result.push(current.trim());
+    result.push(current.trim().replace(/^"|"$/g, ''));
     return result;
   }
 
