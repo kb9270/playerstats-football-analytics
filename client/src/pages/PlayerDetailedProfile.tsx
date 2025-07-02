@@ -35,6 +35,13 @@ export default function PlayerDetailedProfile() {
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  
+  // Nouvelles fonctionnalités pour directeurs sportifs
+  const [progressionData, setProgressionData] = useState<any>(null);
+  const [comparisonPlayer, setComparisonPlayer] = useState<string>("");
+  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [loadingProgression, setLoadingProgression] = useState(false);
+  const [loadingComparison, setLoadingComparison] = useState(false);
 
   // Obtenir les données CSV pour débugger
   const { data: csvData } = useQuery({
@@ -103,6 +110,42 @@ export default function PlayerDetailedProfile() {
       setComparatif("Erreur lors de la génération de l'analyse IA.");
     } finally {
       setIsGeneratingAnalysis(false);
+    }
+  };
+
+  // Nouvelle fonction: Analyse de progression - "Il progresse où ?"
+  const getProgressionAnalysis = async () => {
+    if (!decodedPlayerName || loadingProgression) return;
+    
+    setLoadingProgression(true);
+    try {
+      const response = await fetch(`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/progression`);
+      if (response.ok) {
+        const data = await response.json();
+        setProgressionData(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'analyse de progression:", error);
+    } finally {
+      setLoadingProgression(false);
+    }
+  };
+
+  // Nouvelle fonction: Comparaison de joueurs - "Peux-tu me comparer ça avec X ?"
+  const compareWithPlayer = async () => {
+    if (!decodedPlayerName || !comparisonPlayer || loadingComparison) return;
+    
+    setLoadingComparison(true);
+    try {
+      const response = await fetch(`/api/csv-direct/compare/${encodeURIComponent(decodedPlayerName)}/${encodeURIComponent(comparisonPlayer)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setComparisonData(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la comparaison:", error);
+    } finally {
+      setLoadingComparison(false);
     }
   };
 
@@ -383,6 +426,206 @@ export default function PlayerDetailedProfile() {
             </CardContent>
           </Card>
         </div>
+
+        {/* NOUVELLES SECTIONS POUR DIRECTEURS SPORTIFS */}
+        
+        {/* Section 1: "Il progresse où ?" */}
+        <Card className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-blue-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-blue-400 flex items-center">
+                <Target className="w-6 h-6 mr-3" />
+                "IL PROGRESSE OÙ ?" - ANALYSE DE PROGRESSION
+              </h2>
+              <Button 
+                onClick={getProgressionAnalysis}
+                disabled={loadingProgression}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {loadingProgression ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Analyser la progression
+              </Button>
+            </div>
+
+            {progressionData ? (
+              <div className="space-y-6">
+                {/* Résumé */}
+                <div className="bg-blue-900/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-bold text-blue-300 mb-2">Résumé exécutif</h3>
+                  <p className="text-gray-300">{progressionData.summary?.response}</p>
+                  <div className="mt-3 space-y-1">
+                    {progressionData.summary?.keyInsights?.map((insight: string, index: number) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                        <span className="text-sm text-gray-300">{insight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Domaines de progression */}
+                {progressionData.progression?.progressionAreas && (
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-300 mb-4">Domaines de progression identifiés</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {progressionData.progression.progressionAreas.map((area: any, index: number) => (
+                        <div key={index} className="bg-gray-800/50 p-4 rounded-lg">
+                          <h4 className="font-bold text-blue-200 mb-2">{area.domain}</h4>
+                          <div className="space-y-1 text-sm">
+                            <div><span className="text-gray-400">Niveau actuel:</span> {area.currentLevel}</div>
+                            <div><span className="text-gray-400">Potentiel:</span> {area.potential}</div>
+                            <div><span className="text-gray-400">Timeline:</span> {area.timeline}</div>
+                            <div className="text-gray-300 mt-2">{area.recommendation}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Valeur marchande */}
+                {progressionData.progression?.marketValue && (
+                  <div className="bg-green-900/20 p-4 rounded-lg">
+                    <h3 className="text-lg font-bold text-green-300 mb-2">Projection de valeur marchande</h3>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-white">
+                          {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(progressionData.progression.marketValue.current)}
+                        </div>
+                        <div className="text-sm text-gray-400">Valeur actuelle</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-400">
+                          {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(progressionData.progression.marketValue.projected)}
+                        </div>
+                        <div className="text-sm text-gray-400">Valeur projetée</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-yellow-400">
+                          +{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(progressionData.progression.marketValue.potentialGain)}
+                        </div>
+                        <div className="text-sm text-gray-400">Gain potentiel</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-gray-400 text-center py-8">
+                Cliquez sur "Analyser la progression" pour voir où le joueur peut s'améliorer et sa projection de valeur marchande.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Section 2: "Peux-tu me comparer ça avec [Joueur X] ?" */}
+        <Card className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border-purple-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-purple-400 flex items-center">
+                <User className="w-6 h-6 mr-3" />
+                "PEUX-TU ME COMPARER ÇA AVEC [JOUEUR X] ?"
+              </h2>
+            </div>
+
+            <div className="flex space-x-4 mb-6">
+              <input
+                type="text"
+                placeholder="Nom du joueur à comparer (ex: Lionel Messi)"
+                value={comparisonPlayer}
+                onChange={(e) => setComparisonPlayer(e.target.value)}
+                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+              />
+              <Button 
+                onClick={compareWithPlayer}
+                disabled={loadingComparison || !comparisonPlayer}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {loadingComparison ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Comparer
+              </Button>
+            </div>
+
+            {comparisonData ? (
+              <div className="space-y-6">
+                {/* Résumé de comparaison */}
+                <div className="bg-purple-900/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-bold text-purple-300 mb-2">Verdict de la comparaison</h3>
+                  <p className="text-gray-300 mb-2">{comparisonData.summary?.recommendation}</p>
+                  <div className="text-lg font-bold text-purple-200">
+                    Gagnant: {comparisonData.summary?.winner} 
+                    <span className="text-sm font-normal ml-2">(Confiance: {comparisonData.summary?.confidence})</span>
+                  </div>
+                </div>
+
+                {/* Comparaison détaillée */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Joueur 1 */}
+                  <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h4 className="font-bold text-blue-300 mb-3">
+                      {comparisonData.comparison?.players?.player1?.name}
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.players?.player1?.age} ans</div>
+                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.players?.player1?.team}</div>
+                      <div><span className="text-gray-400">Note:</span> {comparisonData.comparison?.players?.player1?.overallRating}/100</div>
+                      <div><span className="text-gray-400">Valeur:</span> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(comparisonData.comparison?.players?.player1?.marketValue || 0)}</div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-xs text-gray-400 mb-1">Attaque</div>
+                      <div className="text-sm">
+                        Buts: {comparisonData.comparison?.metrics?.attack?.player1?.goals} | 
+                        Passes: {comparisonData.comparison?.metrics?.attack?.player1?.assists}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Joueur 2 */}
+                  <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h4 className="font-bold text-pink-300 mb-3">
+                      {comparisonData.comparison?.players?.player2?.name}
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.players?.player2?.age} ans</div>
+                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.players?.player2?.team}</div>
+                      <div><span className="text-gray-400">Note:</span> {comparisonData.comparison?.players?.player2?.overallRating}/100</div>
+                      <div><span className="text-gray-400">Valeur:</span> {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(comparisonData.comparison?.players?.player2?.marketValue || 0)}</div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-xs text-gray-400 mb-1">Attaque</div>
+                      <div className="text-sm">
+                        Buts: {comparisonData.comparison?.metrics?.attack?.player2?.goals} | 
+                        Passes: {comparisonData.comparison?.metrics?.attack?.player2?.assists}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommandations */}
+                <div className="bg-yellow-900/20 p-4 rounded-lg">
+                  <h3 className="text-lg font-bold text-yellow-300 mb-2">Recommandations</h3>
+                  <p className="text-gray-300 mb-3">{comparisonData.comparison?.recommendations?.forRecruitment}</p>
+                  <div className="space-y-1">
+                    {comparisonData.comparison?.recommendations?.keyDifferences?.map((diff: string, index: number) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                        <span className="text-sm text-gray-300">{diff}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400 text-center py-8">
+                Entrez le nom d'un joueur pour le comparer avec {decodedPlayerName}.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Footer */}
         <div className="text-center text-gray-400 text-sm mt-8 pb-8 print:block">
