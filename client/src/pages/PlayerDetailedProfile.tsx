@@ -104,15 +104,6 @@ export default function PlayerDetailedProfile() {
     }
   };
 
-  // Always call hooks in the same order
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const [loadingAI, setLoadingAI] = useState(false);
-
-  const { data: playerAnalysis, isLoading } = useQuery<PlayerAnalysis>({
-    queryKey: [`/api/csv-direct/player/${id}/analysis`],
-    enabled: !!id,
-  });
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 p-8">
