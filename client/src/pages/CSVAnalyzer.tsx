@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Search, User, Activity, BarChart3, Zap } from "lucide-react";
+import { Search, User, Activity, BarChart3, Zap, Map, Route, TrendingUp, Users } from "lucide-react";
+import Heatmap from "@/components/Heatmap";
+import PassMap from "@/components/PassMap";
+import PlayerComparison from "@/components/PlayerComparison";
 
 interface PlayerData {
   Rk: number;
@@ -42,6 +45,8 @@ interface ApiResponse {
 export default function CSVAnalyzer() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'heatmap' | 'passmap' | 'compare'>('profile');
+  const [comparePlayer, setComparePlayer] = useState<string | null>(null);
 
   // Récupération des statistiques générales
   const { data: leagueStats } = useQuery<ApiResponse>({
@@ -59,6 +64,30 @@ export default function CSVAnalyzer() {
   const { data: playerProfile, isLoading: isLoadingProfile } = useQuery<ApiResponse>({
     queryKey: ['/api/csv-direct/player', selectedPlayer, 'analysis'],
     enabled: !!selectedPlayer
+  });
+
+  // Heatmap du joueur sélectionné
+  const { data: heatmapData } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/player', selectedPlayer, 'heatmap'],
+    enabled: !!selectedPlayer && activeTab === 'heatmap'
+  });
+
+  // Pass map du joueur sélectionné
+  const { data: passmapData } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/player', selectedPlayer, 'passmap'],
+    enabled: !!selectedPlayer && activeTab === 'passmap'
+  });
+
+  // Valeur marchande du joueur sélectionné
+  const { data: marketValue } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/player', selectedPlayer, 'market-value'],
+    enabled: !!selectedPlayer
+  });
+
+  // Comparaison de joueurs
+  const { data: comparisonData } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/compare', selectedPlayer, comparePlayer],
+    enabled: !!selectedPlayer && !!comparePlayer && activeTab === 'compare'
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -192,7 +221,7 @@ export default function CSVAnalyzer() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <div className="font-semibold">{playerProfile.player.Age}</div>
                   <div className="text-sm text-muted-foreground">Âge</div>
@@ -208,6 +237,15 @@ export default function CSVAnalyzer() {
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <div className="font-semibold">{playerProfile.analysis?.overallRating || 'N/A'}</div>
                   <div className="text-sm text-muted-foreground">Note /100</div>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="font-semibold text-green-600">
+                    {marketValue?.success ? (marketValue as any).marketValue.formatted : 'N/A'}
+                  </div>
+                  <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Valeur
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -300,6 +338,153 @@ export default function CSVAnalyzer() {
               </CardContent>
             </Card>
           )}
+
+          {/* Onglets pour les visualisations avancées */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Visualisations Avancées</CardTitle>
+              <CardDescription>Heatmaps, pass maps et comparaisons de joueurs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Navigation des onglets */}
+              <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
+                <Button
+                  variant={activeTab === 'profile' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('profile')}
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Profil
+                </Button>
+                <Button
+                  variant={activeTab === 'heatmap' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('heatmap')}
+                  className="flex items-center gap-2"
+                >
+                  <Map className="h-4 w-4" />
+                  Heatmap
+                </Button>
+                <Button
+                  variant={activeTab === 'passmap' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('passmap')}
+                  className="flex items-center gap-2"
+                >
+                  <Route className="h-4 w-4" />
+                  Pass Map
+                </Button>
+                <Button
+                  variant={activeTab === 'compare' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('compare')}
+                  className="flex items-center gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Comparer
+                </Button>
+              </div>
+
+              {/* Contenu des onglets */}
+              {activeTab === 'profile' && (
+                <div className="text-center py-8">
+                  <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Profil du Joueur</h3>
+                  <p className="text-muted-foreground">
+                    Les informations détaillées du joueur sont affichées ci-dessus.
+                  </p>
+                </div>
+              )}
+
+              {activeTab === 'heatmap' && (
+                <div className="space-y-4">
+                  {heatmapData?.success ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <Heatmap
+                        data={(heatmapData as any).heatmap.general}
+                        title="Heatmap Générale"
+                        type="general"
+                      />
+                      <Heatmap
+                        data={(heatmapData as any).heatmap.defensive}
+                        title="Actions Défensives"
+                        type="defensive"
+                      />
+                      <Heatmap
+                        data={(heatmapData as any).heatmap.offensive}
+                        title="Actions Offensives"
+                        type="offensive"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Map className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Génération de la Heatmap</h3>
+                      <p className="text-muted-foreground">
+                        Chargement des données de position et d'activité...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'passmap' && (
+                <div className="space-y-4">
+                  {passmapData?.success ? (
+                    <PassMap
+                      data={(passmapData as any).passMap}
+                      title={`Pass Map - ${playerProfile.player.Player}`}
+                      stats={(passmapData as any).stats}
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <Route className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Génération de la Pass Map</h3>
+                      <p className="text-muted-foreground">
+                        Analyse des patterns de passes en cours...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'compare' && (
+                <div className="space-y-6">
+                  {/* Sélection du joueur à comparer */}
+                  <div className="flex items-center space-x-4">
+                    <label className="text-sm font-medium">Comparer avec:</label>
+                    <Input
+                      placeholder="Nom du joueur à comparer"
+                      value={comparePlayer || ''}
+                      onChange={(e) => setComparePlayer(e.target.value)}
+                      className="max-w-xs"
+                    />
+                  </div>
+
+                  {comparisonData?.success ? (
+                    <PlayerComparison data={(comparisonData as any).comparison} />
+                  ) : comparePlayer ? (
+                    <div className="text-center py-8">
+                      <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Comparaison en cours</h3>
+                      <p className="text-muted-foreground">
+                        Analyse comparative entre {playerProfile.player.Player} et {comparePlayer}...
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Comparaison de Joueurs</h3>
+                      <p className="text-muted-foreground">
+                        Entrez le nom d'un joueur pour commencer la comparaison.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

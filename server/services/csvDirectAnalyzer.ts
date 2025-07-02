@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-interface PlayerData {
+export interface PlayerData {
   Rk: number;
   Player: string;
   Nation: string;

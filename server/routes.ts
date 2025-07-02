@@ -11,6 +11,8 @@ import { csvPlayerAnalyzer } from "./services/csvPlayerAnalyzer";
 import { csvDirectAnalyzer } from "./services/csvDirectAnalyzer";
 import { csvMatchAnalyzer } from "./services/csvMatchAnalyzer";
 import { pdfPlayerCard } from "./services/pdfPlayerCard";
+import { heatmapService } from "./services/heatmapService";
+import { comparisonService } from "./services/comparisonService";
 import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -743,6 +745,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting player analysis:', error);
       res.status(500).json({ success: false, error: 'Error getting player analysis' });
+    }
+  });
+
+  // Route pour la heatmap d'un joueur
+  app.get("/api/csv-direct/player/:name/heatmap", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Player not found' });
+      }
+      
+      const heatmap = heatmapService.generateHeatmap(player);
+      const defensiveZones = heatmapService.generateDefensiveZones(player);
+      const offensiveZones = heatmapService.generateOffensiveZones(player);
+      
+      res.json({ 
+        success: true, 
+        player: { name: player.Player, position: player.Pos },
+        heatmap: {
+          general: heatmap,
+          defensive: defensiveZones,
+          offensive: offensiveZones
+        }
+      });
+    } catch (error) {
+      console.error('Error generating heatmap:', error);
+      res.status(500).json({ success: false, error: 'Error generating heatmap' });
+    }
+  });
+
+  // Route pour la pass map d'un joueur
+  app.get("/api/csv-direct/player/:name/passmap", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Player not found' });
+      }
+      
+      const passMap = heatmapService.generatePassMap(player);
+      
+      res.json({ 
+        success: true, 
+        player: { name: player.Player, position: player.Pos },
+        passMap,
+        stats: {
+          totalPasses: player.Att || 0,
+          completedPasses: player.Cmp || 0,
+          successRate: player['Cmp%'] || 0,
+          progressivePasses: player.PrgP || 0
+        }
+      });
+    } catch (error) {
+      console.error('Error generating pass map:', error);
+      res.status(500).json({ success: false, error: 'Error generating pass map' });
+    }
+  });
+
+  // Route pour la valeur marchande d'un joueur
+  app.get("/api/csv-direct/player/:name/market-value", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Player not found' });
+      }
+      
+      const marketValue = comparisonService.calculateMarketValue(player);
+      const formattedValue = comparisonService.formatMarketValue(marketValue);
+      
+      res.json({ 
+        success: true, 
+        player: { 
+          name: player.Player, 
+          age: player.Age, 
+          position: player.Pos, 
+          team: player.Squad,
+          league: player.Comp 
+        },
+        marketValue: {
+          ...marketValue,
+          formatted: formattedValue
+        }
+      });
+    } catch (error) {
+      console.error('Error calculating market value:', error);
+      res.status(500).json({ success: false, error: 'Error calculating market value' });
+    }
+  });
+
+  // Route pour comparer deux joueurs
+  app.get("/api/csv-direct/compare/:player1Name/:player2Name", async (req, res) => {
+    try {
+      const { player1Name, player2Name } = req.params;
+      
+      const player1 = await csvDirectAnalyzer.getPlayerByName(player1Name);
+      const player2 = await csvDirectAnalyzer.getPlayerByName(player2Name);
+      
+      if (!player1) {
+        return res.status(404).json({ success: false, error: `Player "${player1Name}" not found` });
+      }
+      
+      if (!player2) {
+        return res.status(404).json({ success: false, error: `Player "${player2Name}" not found` });
+      }
+      
+      const comparison = comparisonService.comparePlayer(player1, player2);
+      
+      // Ajouter les valeurs marchandes
+      const player1MarketValue = comparisonService.calculateMarketValue(player1);
+      const player2MarketValue = comparisonService.calculateMarketValue(player2);
+      
+      res.json({ 
+        success: true,
+        comparison: {
+          ...comparison,
+          marketValues: {
+            player1: {
+              ...player1MarketValue,
+              formatted: comparisonService.formatMarketValue(player1MarketValue)
+            },
+            player2: {
+              ...player2MarketValue,
+              formatted: comparisonService.formatMarketValue(player2MarketValue)
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error comparing players:', error);
+      res.status(500).json({ success: false, error: 'Error comparing players' });
     }
   });
 
