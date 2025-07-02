@@ -38,6 +38,18 @@ export class WeaknessAnalysisService {
   }
 
   static detectWeaknesses(player: PlayerData): string[] {
+    const out: string[] = [];
+
+    if (Number(player.xG || 0) < 0.2) out.push("Trop peu de tirs dangereux (xG bas)");
+    if (Number(player.xAG || 0) < 0.15) out.push("Création limitée d'occasions");
+    if (Number(player.Succ || 0) < 1.0) out.push("Manque de percussion balle au pied");
+    if (Number(player.PrgP || 0) < 1.0) out.push("Peu de passes clés / décalages");
+    if (Number(player.Tkl || 0) < 0.5) out.push("Implication défensive faible");
+
+    return out;
+  }
+
+  static detectWeaknessesAdvanced(player: PlayerData): string[] {
     const weaknesses: string[] = [];
     const position = player.Pos || 'MF';
     const thresholds = this.getPositionThresholds(position);

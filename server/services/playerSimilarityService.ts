@@ -8,7 +8,7 @@ function normalize(value: number, min: number, max: number): number {
 
 export class PlayerSimilarityService {
   static getSimilarPlayers(target: PlayerData, allPlayers: PlayerData[], k = 3): PlayerData[] {
-    const metrics = ['xG', 'xAG', 'Gls', 'Ast', 'Succ', 'Tkl'];
+    const metrics = ["Gls", "Ast", "xG", "xAG", "Succ", "Tkl"];
     
     // Filter players by position and age (within 3 years)
     const filtered = allPlayers.filter(p =>
@@ -29,21 +29,50 @@ export class PlayerSimilarityService {
 
     // Calculate distances
     const distances = filtered.map(p => {
-      const dist = Math.sqrt(
-        metrics.reduce((sum, key) => {
-          const targetValue = Number(target[key as keyof PlayerData] || 0);
-          const playerValue = Number(p[key as keyof PlayerData] || 0);
-          const a = normalize(targetValue, ...ranges[key]);
-          const b = normalize(playerValue, ...ranges[key]);
+      const distance = Math.sqrt(
+        metrics.reduce((sum, m) => {
+          const targetValue = Number(target[m as keyof PlayerData] || 0);
+          const playerValue = Number(p[m as keyof PlayerData] || 0);
+          const a = normalize(targetValue, ...ranges[m]);
+          const b = normalize(playerValue, ...ranges[m]);
           return sum + Math.pow(a - b, 2);
         }, 0)
       );
-      return { player: p, distance: dist };
+      return { player: p, score: distance };
     });
 
     return distances
-      .sort((a, b) => a.distance - b.distance)
+      .sort((a, b) => a.score - b.score)
       .slice(0, k)
       .map(d => d.player);
+  }
+
+  // Alternative method using your exact implementation
+  static getSimilarPlayersV2(target: PlayerData, allPlayers: PlayerData[], k = 3): PlayerData[] {
+    const metrics = ["Gls", "Ast", "xG", "xAG", "Succ", "Tkl"];
+    const filtered = allPlayers.filter(p =>
+      p.Player !== target.Player &&
+      p.Pos === target.Pos &&
+      Math.abs(Number(p.Age) - Number(target.Age)) <= 3
+    );
+
+    const ranges: Record<string, [number, number]> = {};
+    metrics.forEach(metric => {
+      const values = filtered.map(p => Number(p[metric as keyof PlayerData] || 0));
+      ranges[metric] = [Math.min(...values), Math.max(...values)];
+    });
+
+    const distances = filtered.map(p => {
+      const distance = Math.sqrt(
+        metrics.reduce((sum, m) => {
+          const a = normalize(Number(target[m as keyof PlayerData] || 0), ...ranges[m]);
+          const b = normalize(Number(p[m as keyof PlayerData] || 0), ...ranges[m]);
+          return sum + Math.pow(a - b, 2);
+        }, 0)
+      );
+      return { player: p, score: distance };
+    });
+
+    return distances.sort((a, b) => a.score - b.score).slice(0, k).map(d => d.player);
   }
 }

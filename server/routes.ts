@@ -896,14 +896,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/csv-direct/similar/:name', async (req, res) => {
     try {
-      const name = decodeURIComponent(req.params.name);
+      const name = decodeURIComponent(req.params.name).toLowerCase();
       const k = parseInt(req.query.k as string) || 3;
-      const similar = await csvDirectAnalyzer.getSimilarPlayers(name, k);
       const target = await csvDirectAnalyzer.getPlayerByName(name);
 
       if (!target) {
         return res.status(404).json({ success: false, error: 'Joueur introuvable' });
       }
+
+      const allPlayers = await csvDirectAnalyzer.getAllPlayers();
+      const { PlayerSimilarityService } = await import('./services/playerSimilarityService');
+      const similar = PlayerSimilarityService.getSimilarPlayersV2(target, allPlayers, k);
 
       res.json({ 
         success: true, 
@@ -919,19 +922,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/csv-direct/player/:name/weaknesses', async (req, res) => {
     try {
-      const name = decodeURIComponent(req.params.name);
-      const result = await csvDirectAnalyzer.getPlayerWeaknesses(name);
+      const name = decodeURIComponent(req.params.name).toLowerCase();
       const player = await csvDirectAnalyzer.getPlayerByName(name);
 
       if (!player) {
         return res.status(404).json({ success: false, error: 'Joueur introuvable' });
       }
 
+      const { WeaknessAnalysisService } = await import('./services/weaknessAnalysisService');
+      const weaknesses = WeaknessAnalysisService.detectWeaknesses(player);
+      const suggestions = WeaknessAnalysisService.getImprovementSuggestions(player, weaknesses);
+
       res.json({ 
         success: true,
         player: player.Player,
         position: player.Pos,
-        ...result
+        weaknesses,
+        suggestions
       });
     } catch (error) {
       console.error('Error analyzing weaknesses:', error);
