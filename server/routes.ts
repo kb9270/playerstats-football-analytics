@@ -721,10 +721,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
-      res.json({ success: true, analysis });
+      res.json({ success: true, player, analysis });
     } catch (error) {
       console.error('Error getting player analysis:', error);
       res.status(500).json({ error: 'Error getting player analysis' });
+    }
+  });
+
+  // Route pour l'analyse d'un joueur (endpoint spécifique)
+  app.get("/api/csv-direct/player/:name/analysis", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+      
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Player not found' });
+      }
+      
+      const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
+      res.json({ success: true, player, analysis });
+    } catch (error) {
+      console.error('Error getting player analysis:', error);
+      res.status(500).json({ success: false, error: 'Error getting player analysis' });
     }
   });
 
