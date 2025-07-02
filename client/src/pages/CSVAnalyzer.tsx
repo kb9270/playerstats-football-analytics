@@ -7,25 +7,57 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Search, User, Activity, BarChart3, Zap } from "lucide-react";
 
+interface PlayerData {
+  Rk: number;
+  Player: string;
+  Nation: string;
+  Pos: string;
+  Squad: string;
+  Comp: string;
+  Age: number;
+  MP: number;
+  Gls: number;
+  Ast: number;
+  Min: number;
+  xG: number;
+  xAG: number;
+  Tkl: number;
+  Int: number;
+  Touches: number;
+}
+
+interface ApiResponse {
+  success: boolean;
+  players?: PlayerData[];
+  player?: PlayerData;
+  analysis?: any;
+  stats?: {
+    totalPlayers: number;
+    totalLeagues: number;
+    avgAge: number;
+    avgGoals: number;
+  };
+}
+
 export default function CSVAnalyzer() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
 
-  // Récupération de la liste des ligues
-  const { data: leagueStats } = useQuery({
-    queryKey: ['/api/csv/leagues/stats'],
+  // Récupération des statistiques générales
+  const { data: leagueStats } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/leagues'],
     enabled: true
   });
 
   // Recherche de joueur
-  const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ['/api/csv/players/search', searchQuery],
+  const { data: searchResults, isLoading: isSearching } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/search', { q: searchQuery }],
     enabled: searchQuery.length > 2
   });
 
   // Profil complet du joueur sélectionné
-  const { data: playerProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['/api/csv/players/profile', selectedPlayer],
+  const { data: playerProfile, isLoading: isLoadingProfile } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/player', selectedPlayer, 'analysis'],
     enabled: !!selectedPlayer
   });
 
@@ -50,25 +82,35 @@ export default function CSVAnalyzer() {
           Analyseur CSV de Joueurs
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Explorez les données complètes de 2800+ joueurs européens avec analyses avancées, percentiles et visualisations
+          Explorez les données complètes de 2800+ joueurs européens avec analyses avancées et statistiques détaillées
         </p>
       </div>
 
-      {/* Statistiques des ligues */}
-      {leagueStats?.success && (
+      {/* Statistiques générales */}
+      {leagueStats?.success && leagueStats.stats && (
         <Card>
           <CardHeader>
-            <CardTitle>Ligues Disponibles</CardTitle>
-            <CardDescription>Répartition des joueurs par championnat</CardDescription>
+            <CardTitle>Statistiques Générales</CardTitle>
+            <CardDescription>Vue d'ensemble des données disponibles</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(leagueStats.leagues).map(([league, count]) => (
-                <div key={league} className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{count}</div>
-                  <div className="text-sm text-muted-foreground">{league}</div>
-                </div>
-              ))}
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-semibold">{leagueStats.stats.totalPlayers}</div>
+                <div className="text-sm text-muted-foreground">Joueurs</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-semibold">{leagueStats.stats.totalLeagues}</div>
+                <div className="text-sm text-muted-foreground">Ligues</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-semibold">{leagueStats.stats.avgAge?.toFixed(1)}</div>
+                <div className="text-sm text-muted-foreground">Âge Moyen</div>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-semibold">{leagueStats.stats.avgGoals?.toFixed(1)}</div>
+                <div className="text-sm text-muted-foreground">Buts/Joueur</div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -85,7 +127,7 @@ export default function CSVAnalyzer() {
         <CardContent>
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
-              placeholder="Nom du joueur (ex: Messi, Mbappé, Haaland...)"
+              placeholder="Nom du joueur (ex: Saka, Mbappé, Haaland...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1"
@@ -98,25 +140,30 @@ export default function CSVAnalyzer() {
       </Card>
 
       {/* Résultats de recherche */}
-      {searchResults?.success && (
+      {searchResults?.success && searchResults.players && searchResults.players.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Joueur Trouvé</CardTitle>
+            <CardTitle>Joueurs Trouvés ({searchResults.players.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div 
-              className="p-4 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
-              onClick={() => setSelectedPlayer(searchResults.player.Player)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{searchResults.player.Player}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {searchResults.player.Squad} • {searchResults.player.Pos} • {searchResults.player.Age} ans
-                  </p>
+            <div className="space-y-2">
+              {searchResults.players.slice(0, 5).map((player: PlayerData) => (
+                <div 
+                  key={player.Rk}
+                  className="p-4 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => setSelectedPlayer(player.Player)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{player.Player}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {player.Squad} • {player.Pos} • {player.Age} ans
+                      </p>
+                    </div>
+                    <Badge variant="outline">{player.Comp}</Badge>
+                  </div>
                 </div>
-                <Badge variant="outline">{searchResults.player.Comp}</Badge>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -131,36 +178,36 @@ export default function CSVAnalyzer() {
         </Card>
       )}
 
-      {playerProfile?.success && (
+      {playerProfile?.success && playerProfile.player && (
         <div className="space-y-6">
           {/* Informations personnelles */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                {playerProfile.profile.informations_personnelles.nom}
+                {playerProfile.player.Player}
               </CardTitle>
               <CardDescription>
-                {playerProfile.profile.informations_personnelles.position} • {playerProfile.profile.informations_personnelles.equipe}
+                {playerProfile.player.Pos} • {playerProfile.player.Squad} • {playerProfile.player.Comp}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.informations_personnelles.age}</div>
+                  <div className="font-semibold">{playerProfile.player.Age}</div>
                   <div className="text-sm text-muted-foreground">Âge</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.informations_personnelles.nationalite}</div>
+                  <div className="font-semibold">{playerProfile.player.Nation}</div>
                   <div className="text-sm text-muted-foreground">Nationalité</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.informations_personnelles.championnat}</div>
-                  <div className="text-sm text-muted-foreground">Championnat</div>
+                  <div className="font-semibold">{playerProfile.player.Min}</div>
+                  <div className="text-sm text-muted-foreground">Minutes</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.note_globale}/100</div>
-                  <div className="text-sm text-muted-foreground">Note Globale</div>
+                  <div className="font-semibold">{playerProfile.analysis?.overallRating || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Note /100</div>
                 </div>
               </div>
             </CardContent>
@@ -177,111 +224,76 @@ export default function CSVAnalyzer() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.statistiques_base.matchs_joues}</div>
+                  <div className="font-semibold">{playerProfile.player.MP}</div>
                   <div className="text-sm text-muted-foreground">Matchs</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.statistiques_base.buts}</div>
+                  <div className="font-semibold">{playerProfile.player.Gls}</div>
                   <div className="text-sm text-muted-foreground">Buts</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.statistiques_base.passes_d}</div>
+                  <div className="font-semibold">{playerProfile.player.Ast}</div>
                   <div className="text-sm text-muted-foreground">Passes D.</div>
                 </div>
                 <div className="text-center p-3 bg-muted rounded-lg">
-                  <div className="font-semibold">{playerProfile.profile.statistiques_base.minutes}</div>
-                  <div className="text-sm text-muted-foreground">Minutes</div>
+                  <div className="font-semibold">{playerProfile.player.xG?.toFixed(1) || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">xG</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Percentiles */}
-          {playerProfile.profile.percentiles && Object.keys(playerProfile.profile.percentiles).length > 0 && (
+          {/* Statistiques détaillées */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Statistiques Détaillées
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="font-semibold">{playerProfile.player.xAG?.toFixed(1) || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">xAG</div>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="font-semibold">{playerProfile.player.Tkl || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Tacles</div>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="font-semibold">{playerProfile.player.Int || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Interceptions</div>
+                </div>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <div className="font-semibold">{playerProfile.player.Touches || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Touches</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Percentiles si disponibles */}
+          {playerProfile.analysis?.percentiles && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
+                  <BarChart3 className="h-5 w-5" />
                   Percentiles vs Position
                 </CardTitle>
                 <CardDescription>Performance comparée aux joueurs du même poste</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.entries(playerProfile.profile.percentiles).map(([stat, value]) => (
+                  {Object.entries(playerProfile.analysis.percentiles).map(([stat, value]: [string, any]) => (
                     <div key={stat} className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm font-medium">{stat}</span>
-                        <span className={`text-sm font-medium ${formatPercentile(value as number)}`}>
+                        <span className={`text-sm font-medium ${formatPercentile(value)}`}>
                           {value}e percentile
                         </span>
                       </div>
-                      <Progress value={value as number} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Style de jeu et analyse */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  Style de Jeu
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="secondary" className="text-lg p-2">
-                  {playerProfile.profile.style_jeu}
-                </Badge>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Forces & Faiblesses</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-green-600 dark:text-green-400 mb-2">Forces</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {playerProfile.profile.forces.map((force: string, index: number) => (
-                      <Badge key={index} variant="outline" className="border-green-200 text-green-700 dark:border-green-800 dark:text-green-300">
-                        {force}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium text-red-600 dark:text-red-400 mb-2">Faiblesses</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {playerProfile.profile.faiblesses.map((faiblesse: string, index: number) => (
-                      <Badge key={index} variant="outline" className="border-red-200 text-red-700 dark:border-red-800 dark:text-red-300">
-                        {faiblesse}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Zones d'activité */}
-          {playerProfile.profile.zones_activite && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Zones d'Activité sur le Terrain</CardTitle>
-                <CardDescription>Répartition de l'activité du joueur par zone</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
-                  {Object.entries(playerProfile.profile.zones_activite).map(([zone, percentage]) => (
-                    <div key={zone} className="text-center p-2 bg-muted rounded">
-                      <div className="font-semibold text-sm">{percentage}%</div>
-                      <div className="text-xs text-muted-foreground">{zone.replace('_', ' ')}</div>
+                      <Progress value={value} className="h-2" />
                     </div>
                   ))}
                 </div>
