@@ -327,6 +327,27 @@ export class CSVDirectAnalyzer {
     };
   }
 
+  async getSimilarPlayers(targetName: string, k: number = 3): Promise<PlayerData[]> {
+    await this.loadData();
+    const target = await this.getPlayerByName(targetName);
+    if (!target) return [];
+
+    const { PlayerSimilarityService } = await import('./playerSimilarityService');
+    return PlayerSimilarityService.getSimilarPlayers(target, this.playersData, k);
+  }
+
+  async getPlayerWeaknesses(playerName: string): Promise<{ weaknesses: string[], suggestions: string[] }> {
+    await this.loadData();
+    const player = await this.getPlayerByName(playerName);
+    if (!player) return { weaknesses: [], suggestions: [] };
+
+    const { WeaknessAnalysisService } = await import('./weaknessAnalysisService');
+    const weaknesses = WeaknessAnalysisService.detectWeaknesses(player);
+    const suggestions = WeaknessAnalysisService.getImprovementSuggestions(player, weaknesses);
+
+    return { weaknesses, suggestions };
+  }
+
   private getStatDisplayName(stat: string): string {
     const displayNames: Record<string, string> = {
       goals: 'Buts',

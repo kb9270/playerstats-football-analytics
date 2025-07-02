@@ -17,19 +17,19 @@ import { insertPlayerSchema, insertComparisonSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+
   // Search players endpoint
   app.get("/api/players/search", async (req, res) => {
     try {
       const { q } = req.query;
-      
+
       if (!q || typeof q !== 'string') {
         return res.status(400).json({ error: "Search query is required" });
       }
-      
+
       // First search in local storage
       const localPlayers = await storage.searchPlayers(q);
-      
+
       // If no local results, try external scraping with enhanced APIs
       if (localPlayers.length === 0) {
         try {
@@ -41,9 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('External scraping failed, returning local results only');
         }
       }
-      
+
       return res.json(localPlayers);
-      
+
     } catch (error) {
       console.error('Search error:', error);
       res.status(500).json({ error: "Internal server error" });
@@ -57,12 +57,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       res.json(player);
     } catch (error) {
       console.error('Get player error:', error);
@@ -75,11 +75,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { season } = req.query;
-      
+
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const stats = await storage.getPlayerStats(id, season as string);
       res.json(stats);
     } catch (error) {
@@ -93,13 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { season = '2024-2025' } = req.query;
-      
+
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const report = await storage.getScoutingReport(id, season as string);
-      
+
       if (!report) {
         // Try to generate scouting report by updating player data
         try {
@@ -110,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Scouting report not available" });
         }
       }
-      
+
       res.json(report);
     } catch (error) {
       console.error('Get scouting report error:', error);
@@ -140,12 +140,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid comparison ID" });
       }
-      
+
       const comparison = await storage.getComparison(id);
       if (!comparison) {
         return res.status(404).json({ error: "Comparison not found" });
       }
-      
+
       // Get player data for comparison
       const playerIds = comparison.playerIds as number[];
       const players = await Promise.all(
@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return { player, stats };
         })
       );
-      
+
       res.json({
         ...comparison,
         players: players.filter(p => p.player) // Filter out null players
@@ -173,10 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       console.log(`Updating player data for ID: ${id}`);
       await scraper.updatePlayerData(id);
-      
+
       const updatedPlayer = await storage.getPlayer(id);
       res.json(updatedPlayer);
     } catch (error) {
@@ -192,30 +192,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       console.log(`Force refreshing comprehensive data for: ${player.name}`);
-      
+
       // Ensure Python scripts exist
       await enhancedSoccerDataService.ensurePythonScriptExists();
-      
+
       // Get comprehensive analysis
       const comprehensiveAnalysis = await enhancedSoccerDataService.getComprehensivePlayerAnalysis(
         player.name,
         player.team,
         player.league
       );
-      
+
       let hasStats = false;
       let hasReport = false;
-      
+
       if (comprehensiveAnalysis && comprehensiveAnalysis.success) {
         console.log(`✓ Got comprehensive analysis for ${player.name}`);
-        
+
         // Store comprehensive stats
         const keyStats = comprehensiveAnalysis.key_stats;
         if (keyStats) {
@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           hasStats = true;
         }
-        
+
         // Create enhanced scouting report
         if (comprehensiveAnalysis.percentiles && player.position) {
           await storage.createScoutingReport({
@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           hasReport = true;
         }
-        
+
         res.json({ 
           success: true, 
           hasStats, 
@@ -275,21 +275,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       console.log(`Generating PDF report for: ${player.name}`);
-      
+
       // Get player stats and scouting report
       const stats = await storage.getPlayerStats(id);
       const scoutingReport = await storage.getScoutingReport(id, '2024-2025');
-      
+
       if (!scoutingReport) {
         console.log(`No scouting report found for ${player.name}, creating basic report`);
-        
+
         // Create basic scouting report if none exists
         const basicReport = {
           position: player.position || 'Unknown',
@@ -304,27 +304,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           weaknesses: ['Needs More Data'],
           overallRating: 70
         };
-        
+
         const pdfBuffer = await pdfReportGenerator.generateScoutingReport(player, stats, basicReport);
-        
+
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="rapport-${player.name.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.setHeader('Cache-Control', 'no-cache');
-        
+
         res.send(pdfBuffer);
         return;
       }
-      
+
       // Generate PDF with full data
       const pdfBuffer = await pdfReportGenerator.generateScoutingReport(player, stats, scoutingReport);
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="rapport-${player.name.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
       res.setHeader('Content-Length', pdfBuffer.length);
       res.setHeader('Cache-Control', 'no-cache');
-      
+
       console.log(`PDF sent successfully for ${player.name}`);
       res.send(pdfBuffer);
     } catch (error) {
@@ -343,22 +343,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       console.log(`Getting comprehensive analysis for: ${player.name}`);
-      
+
       await enhancedSoccerDataService.ensurePythonScriptExists();
-      
+
       const analysis = await enhancedSoccerDataService.getComprehensivePlayerAnalysis(
         player.name,
         player.team,
         player.league
       );
-      
+
       if (analysis && analysis.success) {
         res.json(analysis);
       } else {
@@ -375,13 +375,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teamName = req.params.teamName;
       const league = req.query.league as string;
-      
+
       console.log(`Getting team analysis for: ${teamName}`);
-      
+
       await enhancedSoccerDataService.ensurePythonScriptExists();
-      
+
       const analysis = await enhancedSoccerDataService.getTeamAnalysis(teamName, league);
-      
+
       if (analysis && analysis.success) {
         res.json(analysis);
       } else {
@@ -400,22 +400,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player || !player.position) {
         return res.status(404).json({ error: "Player or position not found" });
       }
-      
+
       console.log(`Getting position comparison for: ${player.name} (${player.position})`);
-      
+
       await enhancedSoccerDataService.ensurePythonScriptExists();
-      
+
       const comparison = await enhancedSoccerDataService.getPlayerComparison(
         player.name,
         player.position,
         player.league
       );
-      
+
       if (comparison && comparison.success) {
         res.json(comparison);
       } else {
@@ -434,21 +434,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid player ID" });
       }
-      
+
       const player = await storage.getPlayer(id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       console.log(`Generating enhanced report for: ${player.name} with rate limiting protection`);
-      
+
       // Generate complete report with enhanced rate limiting
       const report = await enhancedReportService.generateCompletePlayerReport(
         player.name,
         player.team,
         2024
       );
-      
+
       if (report && report.success) {
         res.json(report);
       } else {
@@ -467,20 +467,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/joueur/rapport", async (req, res) => {
     try {
       const { nom } = req.body;
-      
+
       if (!nom) {
         return res.status(400).json({ 
           status: "error", 
           message: "Nom du joueur requis" 
         });
       }
-      
+
       console.log(`Generating Flask-style report for: ${nom}`);
-      
+
       // Search for player first
       const players = await storage.searchPlayers(nom);
       let player = players.length > 0 ? players[0] : null;
-      
+
       if (!player) {
         // Try to create player if not found
         try {
@@ -491,31 +491,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Could not create player:', error);
         }
       }
-      
+
       if (!player) {
         return res.status(404).json({
           status: "error",
           message: `Aucune donnée trouvée pour ${nom}`
         });
       }
-      
+
       // Generate enhanced report
       const report = await enhancedReportService.generateCompletePlayerReport(
         player.name,
         player.team
       );
-      
+
       if (report && report.success) {
         // Generate PDF with enhanced data
         const stats = await storage.getPlayerStats(player.id);
         const scoutingReport = await storage.getScoutingReport(player.id, '2024-2025');
-        
+
         const pdfBuffer = await pdfReportGenerator.generateScoutingReport(
           player, 
           stats, 
           scoutingReport || report
         );
-        
+
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="rapport-${player.name.replace(/\s+/g, '-').toLowerCase()}.pdf"`);
         res.send(pdfBuffer);
@@ -535,20 +535,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // === NOUVELLES ROUTES POUR L'ANALYSE CSV ===
-  
+
   // Rechercher un joueur dans la base CSV
   app.get("/api/csv/players/search", async (req, res) => {
     try {
       const { q, team } = req.query;
-      
+
       if (!q || typeof q !== 'string') {
         return res.status(400).json({ error: "Search query is required" });
       }
-      
+
       console.log(`Searching CSV player: ${q}${team ? ` in team ${team}` : ''}`);
-      
+
       const result = await csvPlayerAnalyzer.searchPlayer(q, team as string);
-      
+
       if (result.found) {
         res.json({ success: true, player: result.player });
       } else {
@@ -565,11 +565,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const playerName = decodeURIComponent(req.params.playerName);
       const team = req.query.team as string;
-      
+
       console.log(`Getting CSV player profile: ${playerName}${team ? ` in team ${team}` : ''}`);
-      
+
       const profile = await csvPlayerAnalyzer.getCompletePlayerProfile(playerName, team);
-      
+
       if (profile.error) {
         res.status(404).json({ error: profile.error });
       } else {
@@ -585,11 +585,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv/players/:playerName/heatmap", async (req, res) => {
     try {
       const playerName = decodeURIComponent(req.params.playerName);
-      
+
       console.log(`Generating heatmap for CSV player: ${playerName}`);
-      
+
       const heatmapData = await csvPlayerAnalyzer.generateHeatmap(playerName);
-      
+
       if (heatmapData.error) {
         res.status(404).json({ error: heatmapData.error });
       } else {
@@ -605,11 +605,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv/players/list", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      
+
       console.log(`Getting CSV players list (limit: ${limit})`);
-      
+
       const players = await csvPlayerAnalyzer.getAvailablePlayersList(limit);
-      
+
       res.json({ success: true, players, count: players.length });
     } catch (error) {
       console.error('CSV players list error:', error);
@@ -621,11 +621,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv/teams/:teamName/players", async (req, res) => {
     try {
       const teamName = decodeURIComponent(req.params.teamName);
-      
+
       console.log(`Getting CSV team players: ${teamName}`);
-      
+
       const players = await csvPlayerAnalyzer.getPlayersByTeam(teamName);
-      
+
       res.json({ success: true, team: teamName, players, count: players.length });
     } catch (error) {
       console.error('CSV team players error:', error);
@@ -637,9 +637,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv/leagues/stats", async (req, res) => {
     try {
       console.log('Getting CSV league stats');
-      
+
       const leagueStats = await csvPlayerAnalyzer.getLeagueStats();
-      
+
       res.json({ success: true, leagues: leagueStats });
     } catch (error) {
       console.error('CSV league stats error:', error);
@@ -651,18 +651,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/csv/joueur/rapport-complet", async (req, res) => {
     try {
       const { nom, equipe } = req.body;
-      
+
       if (!nom) {
         return res.status(400).json({ 
           status: "error", 
           message: "Nom du joueur requis" 
         });
       }
-      
+
       console.log(`Generating complete CSV report for: ${nom}${equipe ? ` in team ${equipe}` : ''}`);
-      
+
       const profile = await csvPlayerAnalyzer.getCompletePlayerProfile(nom, equipe);
-      
+
       if (profile.error) {
         res.status(404).json({
           status: "error",
@@ -695,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ====== NOUVELLES ROUTES CSV DIRECTES ======
-  
+
   // Route pour chercher des joueurs directement dans le CSV
   app.get("/api/csv-direct/search", async (req, res) => {
     try {
@@ -703,7 +703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!q || typeof q !== 'string' || q.trim().length === 0) {
         return res.status(400).json({ error: 'Query parameter required and must not be empty' });
       }
-      
+
       const players = await csvDirectAnalyzer.searchPlayers(q.trim());
       res.json({ success: true, players });
     } catch (error) {
@@ -717,11 +717,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }
-      
+
       const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
       res.json({ success: true, player, analysis });
     } catch (error) {
@@ -735,11 +735,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ success: false, error: 'Player not found' });
       }
-      
+
       const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
       res.json({ success: true, player, analysis });
     } catch (error) {
@@ -753,15 +753,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ success: false, error: 'Player not found' });
       }
-      
+
       const heatmap = heatmapService.generateHeatmap(player);
       const defensiveZones = heatmapService.generateDefensiveZones(player);
       const offensiveZones = heatmapService.generateOffensiveZones(player);
-      
+
       res.json({ 
         success: true, 
         player: { name: player.Player, position: player.Pos },
@@ -782,13 +782,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ success: false, error: 'Player not found' });
       }
-      
+
       const passMap = heatmapService.generatePassMap(player);
-      
+
       res.json({ 
         success: true, 
         player: { name: player.Player, position: player.Pos },
@@ -811,14 +811,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ success: false, error: 'Player not found' });
       }
-      
+
       const marketValue = comparisonService.calculateMarketValue(player);
       const formattedValue = comparisonService.formatMarketValue(marketValue);
-      
+
       res.json({ 
         success: true, 
         player: { 
@@ -843,24 +843,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/csv-direct/compare/:player1Name/:player2Name", async (req, res) => {
     try {
       const { player1Name, player2Name } = req.params;
-      
+
       const player1 = await csvDirectAnalyzer.getPlayerByName(player1Name);
       const player2 = await csvDirectAnalyzer.getPlayerByName(player2Name);
-      
+
       if (!player1) {
         return res.status(404).json({ success: false, error: `Player "${player1Name}" not found` });
       }
-      
+
       if (!player2) {
         return res.status(404).json({ success: false, error: `Player "${player2Name}" not found` });
       }
-      
+
       const comparison = comparisonService.comparePlayer(player1, player2);
-      
+
       // Ajouter les valeurs marchandes
       const player1MarketValue = comparisonService.calculateMarketValue(player1);
       const player2MarketValue = comparisonService.calculateMarketValue(player2);
-      
+
       res.json({ 
         success: true,
         comparison: {
@@ -883,14 +883,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route pour les statistiques des ligues
-  app.get("/api/csv-direct/leagues", async (req, res) => {
+  // CSV Direct routes
+  app.get('/api/csv-direct/leagues', async (req, res) => {
     try {
       const stats = await csvDirectAnalyzer.getLeagueStats();
       res.json({ success: true, stats });
     } catch (error) {
       console.error('Error getting league stats:', error);
-      res.status(500).json({ error: 'Error getting league stats' });
+      res.status(500).json({ success: false, error: 'Failed to get league stats' });
+    }
+  });
+
+  app.get('/api/csv-direct/similar/:name', async (req, res) => {
+    try {
+      const name = decodeURIComponent(req.params.name);
+      const k = parseInt(req.query.k as string) || 3;
+      const similar = await csvDirectAnalyzer.getSimilarPlayers(name, k);
+      const target = await csvDirectAnalyzer.getPlayerByName(name);
+
+      if (!target) {
+        return res.status(404).json({ success: false, error: 'Joueur introuvable' });
+      }
+
+      res.json({ 
+        success: true, 
+        target, 
+        similar,
+        count: similar.length 
+      });
+    } catch (error) {
+      console.error('Error finding similar players:', error);
+      res.status(500).json({ success: false, error: 'Failed to find similar players' });
+    }
+  });
+
+  app.get('/api/csv-direct/player/:name/weaknesses', async (req, res) => {
+    try {
+      const name = decodeURIComponent(req.params.name);
+      const result = await csvDirectAnalyzer.getPlayerWeaknesses(name);
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Joueur introuvable' });
+      }
+
+      res.json({ 
+        success: true,
+        player: player.Player,
+        position: player.Pos,
+        ...result
+      });
+    } catch (error) {
+      console.error('Error analyzing weaknesses:', error);
+      res.status(500).json({ success: false, error: 'Failed to analyze weaknesses' });
     }
   });
 
@@ -960,7 +1005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Query parameter required" });
       }
-      
+
       const matches = await csvMatchAnalyzer.searchMatches(query);
       res.json({ success: true, matches });
     } catch (error) {
@@ -1038,18 +1083,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { name } = req.params;
       const player = await csvDirectAnalyzer.getPlayerByName(name);
-      
+
       if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }
-      
+
       const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
       const pdfHtml = await pdfPlayerCard.generatePlayerCard({
         ...player,
         ...analysis,
         overallRating: analysis.overallRating || 75
       });
-      
+
       // Set headers for HTML preview
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(pdfHtml);
