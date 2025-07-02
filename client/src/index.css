@@ -23,7 +23,7 @@
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --ring: hsl(20, 14.3%, 4.1%);
   --radius: 0.5rem;
-  
+
   /* Football stats theme colors */
   --stats-dark: hsl(0, 0%, 3.9%);
   --stats-secondary: hsl(0, 0%, 10.2%);
@@ -86,7 +86,7 @@
       0 2px 16px rgba(147, 197, 253, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
-  
+
   .stats-button {
     @apply text-white transition-all duration-200;
     background: linear-gradient(135deg, 
@@ -95,7 +95,7 @@
       hsl(210, 98%, 78%) 100%);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   }
-  
+
   .stats-button:hover {
     background: linear-gradient(135deg, 
       hsl(213, 93%, 67%) 0%, 
@@ -104,36 +104,36 @@
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     transform: translateY(-1px);
   }
-  
+
   .percentile-bar {
     @apply h-6 bg-gray-700 rounded-full overflow-hidden;
   }
-  
+
   .percentile-fill {
     @apply h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full transition-all duration-500;
   }
-  
+
   .search-result-item {
     @apply p-4 hover:bg-blue-300/10 cursor-pointer border-b border-blue-400/30 last:border-b-0 transition-all duration-200;
     border-radius: 8px;
   }
-  
+
   .search-result-item:hover {
     background: linear-gradient(135deg, rgba(147, 197, 253, 0.08), rgba(96, 165, 250, 0.12));
     box-shadow: 0 2px 8px rgba(96, 165, 250, 0.1);
   }
-  
+
   /* Enhanced text contrast for better readability */
   .text-contrast-high {
     @apply text-white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   }
-  
+
   .text-contrast-medium {
     @apply text-gray-200;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
   }
-  
+
   .text-contrast-low {
     @apply text-gray-300;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
@@ -187,4 +187,128 @@
   background: linear-gradient(90deg, #374151 0px, #4b5563 40px, #374151 80px);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* AI Analysis Styles */
+.ai-analysis {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 25px;
+  border-radius: 15px;
+  margin: 20px 0;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.ai-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.ai-section h3 {
+  margin-bottom: 10px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.ai-section p {
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.ai-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.ai-section li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  padding-left: 20px;
+}
+
+.ai-section li:before {
+  content: "▶";
+  position: absolute;
+  left: 0;
+  color: #ffd700;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.rating-score {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffd700;
+  min-width: 80px;
+}
+
+.rating-bar {
+  flex: 1;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rating-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%);
+  transition: width 0.5s ease;
+  border-radius: 6px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  color: #666;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .search-bar input {
+    margin-bottom: 10px;
+  }
+
+  .stats-table {
+    font-size: 14px;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    padding: 8px 4px;
+  }
+
+  .ai-analysis {
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .ai-section {
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+
+  .rating-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .rating-bar {
+    width: 100%;
+  }
 }

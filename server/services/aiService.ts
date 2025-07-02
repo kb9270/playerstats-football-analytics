@@ -2,7 +2,9 @@ import axios from 'axios';
 
 export class AIAnalysisService {
   private openaiApiKey = process.env.OPENAI_API_KEY;
+  private deepseekApiKey = process.env.DEEPSEEK_API_KEY || 'sk-ee7e82da6ed44598ae402d25997c8837';
   private baseUrl = 'https://api.openai.com/v1';
+  private deepseekUrl = 'https://api.deepseek.com/v1';
 
   async analyzePlayerData(playerData: any): Promise<any> {
     if (!this.openaiApiKey) {
@@ -104,6 +106,77 @@ Format as detailed JSON analysis.`;
       return JSON.parse(response.data.choices[0].message.content);
     } catch (error) {
       console.error('Error in AI comparison:', error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  async analyzePlayerWithDeepSeek(playerData: any): Promise<any> {
+    if (!this.deepseekApiKey) {
+      console.warn('DeepSeek API key not configured');
+      return null;
+    }
+
+    try {
+      const prompt = `Analyze this football player in detail and provide a comprehensive professional scouting report:
+
+Player: ${playerData.Player || playerData.name}
+Position: ${playerData.Pos || playerData.position}
+Age: ${playerData.Age}
+Team: ${playerData.Squad || playerData.team}
+League: ${playerData.Comp || playerData.league}
+
+Season Statistics:
+- Goals: ${playerData.Gls || 0}
+- Assists: ${playerData.Ast || 0}
+- xG: ${playerData.xG || 0}
+- xA: ${playerData.xAG || 0}
+- Minutes: ${playerData.Min || 0}
+- Pass Completion: ${playerData['Cmp%'] || 0}%
+- Progressive Passes: ${playerData.PrgP || 0}
+- Tackles: ${playerData.Tkl || 0}
+- Interceptions: ${playerData.Int || 0}
+- Dribbles: ${playerData.Succ || 0}
+- Shot Accuracy: ${playerData['SoT%'] || 0}%
+
+Provide a detailed analysis in the following format:
+{
+  "resume_detaille": "Detailed 3-4 sentence summary of the player's profile, style, and current level",
+  "style_de_jeu": "Detailed description of playing style and tactical role",
+  "forces_principales": ["List of 3-4 main strengths"],
+  "points_amelioration": ["List of 4-5 specific areas for improvement"],
+  "potentiel": "Assessment of potential and development trajectory",
+  "comparaison_position": "How they compare to others in their position",
+  "valeur_tactique": "Tactical value and versatility",
+  "note_globale": "Overall rating out of 100",
+  "recommandations": ["3-4 specific recommendations for improvement"]
+}
+
+Be specific, professional, and provide actionable insights based on the statistics and position.`;
+
+      const response = await axios.post(`${this.deepseekUrl}/chat/completions`, {
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional football scout and analyst with extensive experience in player evaluation and development. Provide detailed, actionable insights based on statistical analysis.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1500,
+        temperature: 0.7
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.deepseekApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      return JSON.parse(response.data.choices[0].message.content);
+    } catch (error) {
+      console.error('Error in DeepSeek analysis:', error.response?.data || error.message);
       return null;
     }
   }

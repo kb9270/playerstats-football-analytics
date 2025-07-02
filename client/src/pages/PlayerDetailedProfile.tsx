@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -65,7 +64,7 @@ export default function PlayerDetailedProfile() {
 
   const generateComparatif = async () => {
     if (!playerAnalysis) return;
-    
+
     setIsGeneratingAnalysis(true);
     try {
       const { player } = playerAnalysis.analysis;
@@ -78,7 +77,7 @@ export default function PlayerDetailedProfile() {
       - Âge: ${player.Age || 'N/A'} ans
       - Nationalité: ${player.Nation || 'N/A'}
       - Ligue: ${player.Comp || 'N/A'}
-      
+
       Compare-le à des joueurs similaires évoluant au même poste en Europe et donne ton avis sur ses points forts, faiblesses et potentiel. Réponds en français, de manière structurée et professionnelle.`;
 
       const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -131,6 +130,8 @@ export default function PlayerDetailedProfile() {
   }
 
   const { player, percentiles, strengths, weaknesses, overallRating } = playerAnalysis.analysis;
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const getPercentileColor = (value: number) => {
     if (value >= 80) return 'bg-green-500';
@@ -292,12 +293,12 @@ export default function PlayerDetailedProfile() {
               <br />
               Statistiques par 90' & Centile
             </div>
-            
+
             <div className="space-y-4">
               {Object.entries(percentiles).map(([key, value]) => {
                 const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
                 const percentage = typeof value === 'number' ? Math.round(value) : 0;
-                
+
                 return (
                   <div key={key} className="flex items-center space-x-4">
                     <div className="w-48 text-sm font-medium">

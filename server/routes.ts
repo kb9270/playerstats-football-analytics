@@ -946,6 +946,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/csv-direct/player/:name/ai-analysis', async (req, res) => {
+    try {
+      const name = decodeURIComponent(req.params.name).toLowerCase();
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+
+      if (!player) {
+        return res.status(404).json({ success: false, error: 'Joueur introuvable' });
+      }
+
+      // Get AI analysis from DeepSeek
+      const aiAnalysis = await aiService.analyzePlayerWithDeepSeek(player);
+      
+      // Get enhanced weakness analysis
+      const { WeaknessAnalysisService } = await import('./services/weaknessAnalysisService');
+      const weaknesses = WeaknessAnalysisService.detectWeaknesses(player);
+      const suggestions = WeaknessAnalysisService.getImprovementSuggestions(player, weaknesses);
+
+      res.json({ 
+        success: true,
+        player: player.Player,
+        position: player.Pos,
+        team: player.Squad,
+        ai_analysis: aiAnalysis || {
+          resume_detaille: "Analyse IA non disponible pour le moment",
+          style_de_jeu: "Style de jeu basé sur les statistiques",
+          forces_principales: ["Données statistiques disponibles"],
+          points_amelioration: weaknesses,
+          note_globale: "75",
+          recommandations: suggestions
+        },
+        weaknesses,
+        suggestions,
+        stats: {
+          goals: player.Gls || 0,
+          assists: player.Ast || 0,
+          minutes: player.Min || 0,
+          xG: player.xG || 0,
+          xA: player.xAG || 0
+        }
+      });
+    } catch (error) {
+      console.error('Error in AI analysis:', error);
+      res.status(500).json({ success: false, error: 'Failed to generate AI analysis' });
+    }
+  });
+
   // Route pour les statistiques des équipes
   app.get("/api/csv-direct/teams", async (req, res) => {
     try {

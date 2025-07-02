@@ -39,14 +39,42 @@ export class WeaknessAnalysisService {
 
   static detectWeaknesses(player: PlayerData): string[] {
     const out: string[] = [];
+    const position = player.Pos || 'MF';
+    const minutes = Number(player.Min || 0);
+    const games = Number(player.MP || 1);
 
+    // Universal weaknesses applicable to all players
     if (Number(player.xG || 0) < 0.2) out.push("Trop peu de tirs dangereux (xG bas)");
     if (Number(player.xAG || 0) < 0.15) out.push("Création limitée d'occasions");
     if (Number(player.Succ || 0) < 1.0) out.push("Manque de percussion balle au pied");
     if (Number(player.PrgP || 0) < 1.0) out.push("Peu de passes clés / décalages");
     if (Number(player.Tkl || 0) < 0.5) out.push("Implication défensive faible");
 
-    return out;
+    // Position-specific weaknesses
+    if (position.includes('FW')) {
+      if (Number(player.Gls || 0) < 5) out.push("Efficacité devant le but à améliorer");
+      if (Number(player['SoT%'] || 0) < 40) out.push("Précision des tirs insuffisante");
+    }
+
+    if (position.includes('MF')) {
+      if (Number(player['Cmp%'] || 0) < 80) out.push("Précision des passes perfectible");
+      if (Number(player.Ast || 0) < 2) out.push("Contribution en passes décisives limitée");
+    }
+
+    if (position.includes('DF')) {
+      if (Number(player.Int || 0) < 10) out.push("Lecture du jeu défensive à développer");
+      if (Number(player.Clr || 0) < 20) out.push("Interventions défensives insuffisantes");
+    }
+
+    // Playing time and consistency issues
+    if (minutes / games < 60) out.push("Temps de jeu insuffisant - régularité à améliorer");
+    if (Number(player.CrdY || 0) > 8) out.push("Discipline tactique à revoir (cartons jaunes)");
+
+    // Physical and technical aspects
+    if (Number(player['Won%'] || 0) < 50) out.push("Duels aériens à renforcer");
+    if (Number(player.Touches || 0) / games < 30) out.push("Implication dans le jeu collectif limitée");
+
+    return out.length > 0 ? out : ["Profil équilibré sans faiblesse majeure"];
   }
 
   static detectWeaknessesAdvanced(player: PlayerData): string[] {
@@ -117,27 +145,52 @@ export class WeaknessAnalysisService {
     const suggestions: string[] = [];
     const position = player.Pos || 'MF';
 
+    // Specific suggestions based on weaknesses
     weaknesses.forEach(weakness => {
-      if (weakness.includes('but') || weakness.includes('tirs')) {
-        suggestions.push('Travailler la finition et le placement dans la surface');
-      } else if (weakness.includes('passe') || weakness.includes('créativité')) {
-        suggestions.push('Améliorer la vision de jeu et la précision des passes');
-      } else if (weakness.includes('défensive') || weakness.includes('duels')) {
-        suggestions.push('Renforcer le pressing et les duels');
-      } else if (weakness.includes('temps de jeu')) {
-        suggestions.push('Gagner en régularité pour obtenir plus de temps de jeu');
+      if (weakness.includes('but') || weakness.includes('tirs') || weakness.includes('finition')) {
+        suggestions.push('Séances de finition intensive avec situations variées');
+        suggestions.push('Travail du placement et timing dans la surface');
+      } else if (weakness.includes('passe') || weakness.includes('créativité') || weakness.includes('précision')) {
+        suggestions.push('Exercices de passes sous pression et vision périphérique');
+        suggestions.push('Analyse vidéo des meilleurs passeurs du poste');
+      } else if (weakness.includes('défensive') || weakness.includes('duels') || weakness.includes('pressing')) {
+        suggestions.push('Renforcement physique et travail du timing défensif');
+        suggestions.push('Positionnement tactique et lecture du jeu adverse');
+      } else if (weakness.includes('temps de jeu') || weakness.includes('régularité')) {
+        suggestions.push('Améliorer la condition physique et mentale');
+        suggestions.push('Développer la polyvalence tactique');
+      } else if (weakness.includes('percussion') || weakness.includes('dribbles')) {
+        suggestions.push('Travail technique individuel et feintes');
+        suggestions.push('Renforcement de la confiance en 1v1');
+      } else if (weakness.includes('discipline') || weakness.includes('cartons')) {
+        suggestions.push('Formation tactique sur le contrôle émotionnel');
+        suggestions.push('Améliorer la lecture des phases de jeu dangereuses');
       }
     });
 
-    // Position-specific suggestions
+    // Position-specific comprehensive suggestions
     if (position.includes('FW')) {
-      suggestions.push('Varier les types de courses et améliorer le jeu dos au but');
+      suggestions.push('Diversifier les types de courses et améliorer le jeu dos au but');
+      suggestions.push('Développer le jeu de tête et les reprises de volée');
+      suggestions.push('Travailler les combinaisons courtes avec les milieux');
     } else if (position.includes('MF')) {
-      suggestions.push('Equilibrer contribution offensive et défensive');
+      suggestions.push('Équilibrer contribution offensive et défensive');
+      suggestions.push('Améliorer la circulation du ballon et les changements de rythme');
+      suggestions.push('Développer le leadership et la communication');
     } else if (position.includes('DF')) {
-      suggestions.push('Améliorer la relance et le jeu aérien');
+      suggestions.push('Améliorer la relance longue et le jeu aérien');
+      suggestions.push('Perfectionner les sorties de balle sous pression');
+      suggestions.push('Renforcer l\'anticipation et la couverture');
+    } else if (position.includes('GK')) {
+      suggestions.push('Améliorer la distribution et le jeu au pied');
+      suggestions.push('Travailler les sorties aériennes et le positionnement');
     }
 
-    return [...new Set(suggestions)].slice(0, 3);
+    // General development suggestions
+    suggestions.push('Analyse vidéo personnalisée des performances');
+    suggestions.push('Préparation physique spécifique au poste');
+    suggestions.push('Travail mental avec préparateur spécialisé');
+
+    return [...new Set(suggestions)].slice(0, 6);
   }
 }
