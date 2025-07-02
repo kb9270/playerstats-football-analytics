@@ -367,48 +367,83 @@ export class CSVDirectAnalyzer {
       recommendation: string;
     }> = [];
 
-    // Analyse technique (based on percentiles)
-    if (percentiles.dribbleSuccess < 60 && age < 26) {
+    // Analyse basée sur les vraies statistiques du joueur
+    const goals = player.Gls || 0;
+    const assists = player.Ast || 0;
+    const minutes = player.Min || 0;
+    const matches = player.MP || 0;
+    const position = player.Pos?.split(',')[0] || 'MF';
+
+    // Efficacité devant le but
+    if (position.includes('FW') || position.includes('MF')) {
+      const goalsPerGame = matches > 0 ? goals / matches : 0;
+      if (goalsPerGame < 0.3 && percentiles.xG > 60) {
+        progressionAreas.push({
+          domain: 'Finition et efficacité',
+          currentLevel: `${goalsPerGame.toFixed(2)} but/match (peut mieux faire)`,
+          potential: 'Très élevé',
+          timeline: '3-6 mois',
+          recommendation: 'Travail spécifique de finition, exercices devant le but, analyse vidéo des occasions manquées'
+        });
+      }
+    }
+
+    // Création de jeu
+    if (position.includes('MF') || position.includes('FW')) {
+      const assistsPerGame = matches > 0 ? assists / matches : 0;
+      if (assistsPerGame < 0.25 && percentiles.progressivePasses < 70) {
+        progressionAreas.push({
+          domain: 'Création et passes décisives',
+          currentLevel: `${assistsPerGame.toFixed(2)} passe/match`,
+          potential: 'Élevé',
+          timeline: '6-12 mois',
+          recommendation: 'Améliorer la vision de jeu, travail sur les centres et passes dans la surface'
+        });
+      }
+    }
+
+    // Régularité de temps de jeu
+    if (minutes < 2000 && age < 26) {
       progressionAreas.push({
-        domain: 'Technique de dribble',
-        currentLevel: percentiles.dribbleSuccess < 40 ? 'À développer' : 'Moyen',
+        domain: 'Temps de jeu et titularisation',
+        currentLevel: `${minutes} minutes cette saison`,
         potential: 'Élevé',
-        timeline: '6-12 mois',
-        recommendation: 'Travail spécifique en 1v1, exercices techniques répétitifs'
+        timeline: '6-18 mois',
+        recommendation: 'Améliorer la condition physique, montrer plus de polyvalence tactique'
       });
     }
 
-    // Analyse physique
-    if (age < 23) {
+    // Développement physique pour les jeunes
+    if (age < 24) {
       progressionAreas.push({
-        domain: 'Développement physique',
-        currentLevel: 'En développement',
+        domain: 'Développement physique et maturité',
+        currentLevel: `${age} ans - En développement`,
         potential: 'Très élevé',
         timeline: '12-24 mois',
-        recommendation: 'Programme de musculation adapté, travail de vitesse'
+        recommendation: 'Programme physique adapté, gain en puissance et endurance'
       });
     }
 
-    // Analyse tactique
-    if (percentiles.progressivePasses < 50 && (player.Pos?.includes('MF') || player.Pos?.includes('FW'))) {
+    // Expérience internationale/Européenne
+    const bigClubs = ['Arsenal', 'Manchester City', 'Liverpool', 'Chelsea', 'Real Madrid', 'Barcelona', 'Bayern Munich', 'PSG'];
+    if (!bigClubs.some(club => player.Squad?.includes(club)) && age < 27) {
       progressionAreas.push({
-        domain: 'Vision de jeu',
-        currentLevel: 'À améliorer',
-        potential: 'Moyen à élevé',
-        timeline: '3-6 mois',
-        recommendation: 'Travail vidéo, placement et lecture du jeu'
-      });
-    }
-
-    // Analyse de la régularité
-    const consistency = this.calculateConsistency(player);
-    if (consistency < 70) {
-      progressionAreas.push({
-        domain: 'Régularité des performances',
-        currentLevel: 'Inconstant',
+        domain: 'Progression vers un club de top niveau',
+        currentLevel: `Actuellement à ${player.Squad}`,
         potential: 'Élevé',
+        timeline: '12-36 mois',
+        recommendation: 'Maintenir le niveau, viser les compétitions européennes'
+      });
+    }
+
+    // Statistiques défensives pour tous les postes
+    if (percentiles.tackles < 40 && !position.includes('GK')) {
+      progressionAreas.push({
+        domain: 'Contribution défensive',
+        currentLevel: 'Faible implication défensive',
+        potential: 'Moyen',
         timeline: '6-12 mois',
-        recommendation: 'Travail mental, routines pré-match, gestion de la pression'
+        recommendation: 'Améliorer le pressing et le repli défensif'
       });
     }
 
@@ -445,29 +480,74 @@ export class CSVDirectAnalyzer {
 
   private estimateMarketValue(player: PlayerData): number {
     const age = player.Age || 25;
-    const avgPercentile = Object.values(this.calculatePercentiles(player, player.Pos?.split(',')[0] || 'MF'))
-      .reduce((a, b) => a + b, 0) / 10;
+    const percentiles = this.calculatePercentiles(player, player.Pos?.split(',')[0] || 'MF');
+    const avgPercentile = Object.values(percentiles).reduce((a, b) => a + b, 0) / Object.values(percentiles).length;
 
-    // Base value calculation
-    let baseValue = 1000000; // 1M base
+    // Base value calculation - Plus réaliste
+    let baseValue = 5000000; // 5M base pour les joueurs pros
     
-    // Age factor
-    if (age < 21) baseValue *= 1.5;
-    else if (age < 25) baseValue *= 1.2;
-    else if (age > 30) baseValue *= 0.7;
+    // Performance factor (plus important)
+    const performanceMultiplier = Math.max(0.3, (avgPercentile / 50));
+    baseValue *= performanceMultiplier;
     
-    // Performance factor
-    baseValue *= (avgPercentile / 50);
+    // Statistiques spécifiques importantes
+    const goals = player.Gls || 0;
+    const assists = player.Ast || 0;
+    const minutes = player.Min || 0;
+    const matches = player.MP || 0;
     
-    // League factor (approximate based on common European leagues)
+    // Bonus pour les performances exceptionnelles
+    if (goals >= 15) baseValue *= 1.8; // Buteur prolifique
+    else if (goals >= 10) baseValue *= 1.4;
+    else if (goals >= 5) baseValue *= 1.2;
+    
+    if (assists >= 10) baseValue *= 1.6; // Excellent passeur
+    else if (assists >= 5) baseValue *= 1.3;
+    
+    if (minutes >= 2500) baseValue *= 1.3; // Joueur titulaire indiscutable
+    else if (minutes >= 1800) baseValue *= 1.1;
+    
+    // Age factor (plus nuancé)
+    if (age < 20) baseValue *= 2.0; // Très grand potentiel
+    else if (age < 23) baseValue *= 1.7; // Potentiel élevé  
+    else if (age < 26) baseValue *= 1.3; // Dans la force de l'âge
+    else if (age < 30) baseValue *= 1.0; // Pic de carrière
+    else if (age < 33) baseValue *= 0.7; // Début de déclin
+    else baseValue *= 0.4; // Fin de carrière
+    
+    // League factor (plus réaliste)
     const league = player.Comp;
-    if (league?.includes('Premier League') || league?.includes('La Liga') || league?.includes('Serie A') || league?.includes('Bundesliga')) {
-      baseValue *= 2;
+    if (league?.includes('Premier League')) {
+      baseValue *= 3.5; // Premier League = prix premium
+    } else if (league?.includes('La Liga') || league?.includes('Serie A') || league?.includes('Bundesliga')) {
+      baseValue *= 2.8; // Autres top 4 ligues
     } else if (league?.includes('Ligue 1')) {
+      baseValue *= 2.2; // Ligue 1
+    } else if (league?.includes('Primeira Liga') || league?.includes('Eredivisie')) {
+      baseValue *= 1.8; // Ligues secondaires fortes
+    } else {
+      baseValue *= 1.2; // Autres ligues
+    }
+
+    // Position factor
+    const position = player.Pos?.split(',')[0] || 'MF';
+    if (position.includes('FW') || position.includes('CF')) {
+      baseValue *= 1.4; // Attaquants plus chers
+    } else if (position.includes('MF') && (goals >= 8 || assists >= 8)) {
+      baseValue *= 1.3; // Milieux créatifs
+    } else if (position.includes('DF') && percentiles.tackles > 70) {
+      baseValue *= 1.1; // Défenseurs solides
+    }
+
+    // Bonus pour les clubs prestigieux
+    const prestigiousClubs = ['Arsenal', 'Manchester City', 'Liverpool', 'Chelsea', 'Tottenham', 
+                             'Real Madrid', 'Barcelona', 'Atletico Madrid', 'Bayern Munich', 
+                             'PSG', 'Manchester United', 'Juventus', 'AC Milan', 'Inter Milan'];
+    if (prestigiousClubs.some(club => player.Squad?.includes(club))) {
       baseValue *= 1.5;
     }
 
-    return Math.round(baseValue / 100000) * 100000; // Round to nearest 100k
+    return Math.round(baseValue / 500000) * 500000; // Round to nearest 500k pour plus de réalisme
   }
 
   private projectMarketValue(player: PlayerData, progressionAreas: any[]): number {

@@ -530,24 +530,40 @@ export default function PlayerDetailedProfile() {
               </h2>
             </div>
 
-            <div className="flex space-x-4 mb-6">
-              <input
-                type="text"
-                placeholder="Nom du joueur à comparer (ex: Lionel Messi)"
-                value={comparisonPlayer}
-                onChange={(e) => setComparisonPlayer(e.target.value)}
-                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
-              />
-              <Button 
-                onClick={compareWithPlayer}
-                disabled={loadingComparison || !comparisonPlayer}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                {loadingComparison ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                Comparer
-              </Button>
+            <div className="space-y-4 mb-6">
+              <div className="flex space-x-4">
+                <input
+                  type="text"
+                  placeholder="Nom du joueur à comparer (ex: Erling Haaland)"
+                  value={comparisonPlayer}
+                  onChange={(e) => setComparisonPlayer(e.target.value)}
+                  className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                />
+                <Button 
+                  onClick={compareWithPlayer}
+                  disabled={loadingComparison || !comparisonPlayer}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {loadingComparison ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Comparer
+                </Button>
+              </div>
+              
+              {/* Suggestions de joueurs populaires */}
+              <div className="text-sm text-gray-400">
+                <span className="mr-3">Suggestions:</span>
+                {["Erling Haaland", "Phil Foden", "Marcus Rashford", "Mohamed Salah", "Kevin De Bruyne", "Virgil van Dijk"].map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => setComparisonPlayer(name)}
+                    className="mr-3 mb-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-xs transition-colors"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {comparisonData ? (
