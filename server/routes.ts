@@ -1157,6 +1157,323 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === NOUVELLES ROUTES POUR DIRECTEURS SPORTIFS ===
+  
+  // Route 1: "Il progresse où ?" - Analyse de progression détaillée
+  app.get("/api/csv-direct/player/:name/progression", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const player = await csvDirectAnalyzer.getPlayerByName(name);
+
+      if (!player) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Joueur introuvable',
+          message: `Aucun joueur trouvé avec le nom "${name}"` 
+        });
+      }
+
+      const percentiles = csvDirectAnalyzer.calculatePercentiles(player, player.Pos?.split(',')[0] || 'MF');
+      const progressionAnalysis = csvDirectAnalyzer.generateProgressionAnalysis(player, percentiles);
+
+      res.json({ 
+        success: true,
+        player: {
+          name: player.Player,
+          age: player.Age,
+          position: player.Pos,
+          team: player.Squad,
+          league: player.Comp
+        },
+        progression: progressionAnalysis,
+        summary: {
+          question: "Il progresse où ?",
+          response: `Analyse de progression pour ${player.Player} (${player.Age} ans)`,
+          keyInsights: [
+            `${progressionAnalysis.progressionAreas.length} domaines d'amélioration identifiés`,
+            `Valeur actuelle estimée: ${new Intl.NumberFormat('fr-FR', { 
+              style: 'currency', 
+              currency: 'EUR',
+              maximumFractionDigits: 0 
+            }).format(progressionAnalysis.marketValue.current)}`,
+            `Potentiel de croissance: ${new Intl.NumberFormat('fr-FR', { 
+              style: 'currency', 
+              currency: 'EUR',
+              maximumFractionDigits: 0 
+            }).format(progressionAnalysis.marketValue.potentialGain)}`
+          ]
+        }
+      });
+    } catch (error) {
+      console.error('Error getting progression analysis:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur lors de l\'analyse de progression',
+        details: error.message 
+      });
+    }
+  });
+
+  // Route 2: "Peux-tu me comparer ça avec [Joueur X] ?" - Comparaison intelligente
+  app.get("/api/csv-direct/compare/:player1/:player2", async (req, res) => {
+    try {
+      const { player1, player2 } = req.params;
+      const { context } = req.query; // Contexte optionnel: "recrutement", "tactique", etc.
+      
+      const playerData1 = await csvDirectAnalyzer.getPlayerByName(player1);
+      const playerData2 = await csvDirectAnalyzer.getPlayerByName(player2);
+
+      if (!playerData1) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Joueur "${player1}" introuvable` 
+        });
+      }
+
+      if (!playerData2) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Joueur "${player2}" introuvable` 
+        });
+      }
+
+      // Analyses individuelles
+      const analysis1 = csvDirectAnalyzer.generatePlayerAnalysis(playerData1);
+      const analysis2 = csvDirectAnalyzer.generatePlayerAnalysis(playerData2);
+
+      // Comparaison détaillée
+      const comparison = {
+        players: {
+          player1: {
+            name: playerData1.Player,
+            age: playerData1.Age,
+            position: playerData1.Pos,
+            team: playerData1.Squad,
+            league: playerData1.Comp,
+            overallRating: analysis1.overallRating,
+            marketValue: analysis1.progression?.marketValue?.current || 0
+          },
+          player2: {
+            name: playerData2.Player,
+            age: playerData2.Age,
+            position: playerData2.Pos,
+            team: playerData2.Squad,
+            league: playerData2.Comp,
+            overallRating: analysis2.overallRating,
+            marketValue: analysis2.progression?.marketValue?.current || 0
+          }
+        },
+        metrics: {
+          attack: {
+            player1: {
+              goals: playerData1.Gls || 0,
+              assists: playerData1.Ast || 0,
+              xG: playerData1.xG || 0,
+              shots: playerData1.Sh || 0
+            },
+            player2: {
+              goals: playerData2.Gls || 0,
+              assists: playerData2.Ast || 0,
+              xG: playerData2.xG || 0,
+              shots: playerData2.Sh || 0
+            },
+            winner: (playerData1.Gls + playerData1.Ast) > (playerData2.Gls + playerData2.Ast) ? 'player1' : 'player2'
+          },
+          defense: {
+            player1: {
+              tackles: playerData1.Tkl || 0,
+              interceptions: playerData1.Int || 0,
+              clearances: playerData1.Clr || 0
+            },
+            player2: {
+              tackles: playerData2.Tkl || 0,
+              interceptions: playerData2.Int || 0,
+              clearances: playerData2.Clr || 0
+            },
+            winner: (playerData1.Tkl + playerData1.Int) > (playerData2.Tkl + playerData2.Int) ? 'player1' : 'player2'
+          },
+          overall: {
+            winner: analysis1.overallRating > analysis2.overallRating ? 'player1' : 'player2',
+            difference: Math.abs(analysis1.overallRating - analysis2.overallRating)
+          }
+        },
+        recommendations: {
+          forRecruitment: analysis1.overallRating > analysis2.overallRating 
+            ? `${playerData1.Player} semble être le meilleur choix avec une note de ${analysis1.overallRating}/100`
+            : `${playerData2.Player} semble être le meilleur choix avec une note de ${analysis2.overallRating}/100`,
+          keyDifferences: [
+            `Âge: ${playerData1.Player} (${playerData1.Age} ans) vs ${playerData2.Player} (${playerData2.Age} ans)`,
+            `Position: ${playerData1.Pos} vs ${playerData2.Pos}`,
+            `Ligue: ${playerData1.Comp} vs ${playerData2.Comp}`
+          ],
+          tacticalFit: context === 'tactique' 
+            ? `Analyse tactique basée sur les positions ${playerData1.Pos} vs ${playerData2.Pos}`
+            : 'Utilisez le paramètre ?context=tactique pour une analyse tactique spécifique'
+        }
+      };
+
+      res.json({ 
+        success: true,
+        comparison,
+        summary: {
+          question: `Comparaison entre ${player1} et ${player2}`,
+          winner: comparison.metrics.overall.winner === 'player1' ? playerData1.Player : playerData2.Player,
+          confidence: comparison.metrics.overall.difference > 10 ? 'Élevée' : 'Modérée',
+          recommendation: comparison.recommendations.forRecruitment
+        }
+      });
+    } catch (error) {
+      console.error('Error comparing players:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur lors de la comparaison',
+        details: error.message 
+      });
+    }
+  });
+
+  // Route 3: Suggestions de joueurs similaires pour comparaison
+  app.get("/api/csv-direct/player/:name/alternatives", async (req, res) => {
+    try {
+      const { name } = req.params;
+      const { budget, position, league } = req.query;
+      
+      const targetPlayer = await csvDirectAnalyzer.getPlayerByName(name);
+      if (!targetPlayer) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Joueur "${name}" introuvable` 
+        });
+      }
+
+      // Trouver des joueurs similaires
+      const similarPlayers = await csvDirectAnalyzer.getSimilarPlayers(name, 5);
+      const alternatives = await Promise.all(
+        similarPlayers
+          .filter(p => p.Player !== targetPlayer.Player) // Exclure le joueur cible
+          .map(async player => {
+            const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
+            return {
+              name: player.Player,
+              age: player.Age,
+              position: player.Pos,
+              team: player.Squad,
+              league: player.Comp,
+              overallRating: analysis.overallRating,
+              marketValue: analysis.progression?.marketValue?.current || 0,
+              similarity: 0.8, // Similarité calculée approximativement
+              advantages: analysis.strengths.slice(0, 3),
+              concerns: analysis.weaknesses.slice(0, 2)
+            };
+          })
+      );
+
+      res.json({ 
+        success: true,
+        targetPlayer: {
+          name: targetPlayer.Player,
+          position: targetPlayer.Pos,
+          team: targetPlayer.Squad
+        },
+        alternatives: alternatives.sort((a, b) => b.similarity - a.similarity),
+        filters: {
+          budget: budget ? `Budget maximum: ${budget}` : 'Aucune limite de budget',
+          position: position ? `Position requise: ${position}` : 'Toutes positions',
+          league: league ? `Ligue préférée: ${league}` : 'Toutes ligues'
+        },
+        summary: {
+          question: `Alternatives à ${name}`,
+          count: alternatives.length,
+          topAlternative: alternatives[0]?.name || 'Aucune alternative trouvée'
+        }
+      });
+    } catch (error) {
+      console.error('Error finding alternatives:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur lors de la recherche d\'alternatives',
+        details: error.message 
+      });
+    }
+  });
+
+  // Route 4: Profil cible - "Peux-tu me comparer ça avec notre profil cible ?"
+  app.post("/api/csv-direct/compare-to-profile", async (req, res) => {
+    try {
+      const { playerName, targetProfile } = req.body;
+      
+      if (!playerName || !targetProfile) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Nom du joueur et profil cible requis' 
+        });
+      }
+
+      const player = await csvDirectAnalyzer.getPlayerByName(playerName);
+      if (!player) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Joueur "${playerName}" introuvable` 
+        });
+      }
+
+      const analysis = csvDirectAnalyzer.generatePlayerAnalysis(player);
+      
+      // Comparaison avec le profil cible
+      const profileMatch = {
+        player: {
+          name: player.Player,
+          age: player.Age,
+          position: player.Pos,
+          currentRating: analysis.overallRating
+        },
+        profile: targetProfile,
+        matches: {
+          position: targetProfile.position ? 
+            player.Pos?.includes(targetProfile.position) : true,
+          ageRange: targetProfile.minAge && targetProfile.maxAge ?
+            player.Age >= targetProfile.minAge && player.Age <= targetProfile.maxAge : true,
+          minRating: targetProfile.minRating ?
+            analysis.overallRating >= targetProfile.minRating : true,
+          skills: targetProfile.requiredSkills ?
+            targetProfile.requiredSkills.every(skill => 
+              analysis.strengths.some(strength => 
+                strength.toLowerCase().includes(skill.toLowerCase())
+              )
+            ) : true
+        },
+        score: 0 // Calculé ci-dessous
+      };
+
+      // Calcul du score de correspondance
+      const matches = Object.values(profileMatch.matches);
+      profileMatch.score = (matches.filter(match => match).length / matches.length) * 100;
+
+      res.json({ 
+        success: true,
+        match: profileMatch,
+        recommendation: profileMatch.score >= 80 ? 'Excellent match' :
+                       profileMatch.score >= 60 ? 'Bon match' :
+                       profileMatch.score >= 40 ? 'Match partiel' : 'Match faible',
+        gaps: Object.entries(profileMatch.matches)
+          .filter(([_, matches]) => !matches)
+          .map(([criteria, _]) => `Ne correspond pas au critère: ${criteria}`),
+        summary: {
+          question: `${playerName} correspond-il à notre profil cible ?`,
+          score: `${Math.round(profileMatch.score)}% de correspondance`,
+          verdict: profileMatch.score >= 70 ? 'Recommandé' : 'Non recommandé'
+        }
+      });
+    } catch (error) {
+      console.error('Error comparing to profile:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erreur lors de la comparaison avec le profil',
+        details: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

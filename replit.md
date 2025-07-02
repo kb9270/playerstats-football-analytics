@@ -150,6 +150,10 @@ This is a full-stack web application for football player analysis and comparison
 - January 1, 2025: Implemented new API endpoints for CSV data analysis (/api/csv/* routes)
 - January 1, 2025: Added CSVAnalyzer React page with search, profiles, and interactive analytics
 - January 1, 2025: Enhanced project with user's complete football analytics platform requirements
+- July 2, 2025: Added progression analysis system ("Il progresse où ?") with market value projections
+- July 2, 2025: Implemented intelligent player comparison API ("Peux-tu me comparer ça avec X ?")
+- July 2, 2025: Created sports director-focused features with timeline analysis and risk assessment
+- July 2, 2025: Added alternative player suggestions and target profile matching functionality
 
 ## User Preferences
 
