@@ -33,6 +33,8 @@ export default function PlayerDetailedProfile() {
   const decodedPlayerName = decodeURIComponent(id as string).trim();
   const [comparatif, setComparatif] = useState<string>("");
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   // Obtenir les données CSV pour débugger
   const { data: csvData } = useQuery({
