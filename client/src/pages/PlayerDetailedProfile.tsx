@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, MapPin, Calendar, Flag, User, Target, BarChart3, Brain, Loader2, Users, Activity } from "lucide-react";
-import SimpleAutoComparison from "@/components/SimpleAutoComparison";
+import BasicAutoComparison from "@/components/BasicAutoComparison";
 
 interface PlayerAnalysis {
   analysis: {
@@ -573,7 +573,7 @@ export default function PlayerDetailedProfile() {
             </div>
 
             {autoComparisonData?.success ? (
-              <SimpleAutoComparison data={autoComparisonData} />
+              <BasicAutoComparison data={autoComparisonData} />
             ) : loadingAutoComparison ? (
               <div className="text-center py-8">
                 <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />

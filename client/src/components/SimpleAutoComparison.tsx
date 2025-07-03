@@ -7,13 +7,13 @@ interface SimpleAutoComparisonProps {
 }
 
 export default function SimpleAutoComparison({ data }: SimpleAutoComparisonProps) {
-  if (!data.success || !data.comparisons || data.comparisons.length === 0) {
+  if (!data || !data.success || !data.comparisons || data.comparisons.length === 0) {
     return (
       <div className="text-center py-8">
         <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
         <h3 className="text-lg font-semibold mb-2">Aucune comparaison disponible</h3>
         <p className="text-gray-400">
-          {data.message || 'Aucun joueur similaire trouvé pour cette comparaison.'}
+          {data?.message || 'Aucun joueur similaire trouvé pour cette comparaison.'}
         </p>
       </div>
     );
@@ -32,7 +32,7 @@ export default function SimpleAutoComparison({ data }: SimpleAutoComparisonProps
       </div>
 
       {data.comparisons.map((comparison: any, index: number) => (
-        <Card key={index} className="bg-gray-800 border-gray-700">
+        <Card key={`comparison-${index}-${comparison.similarPlayer?.name || 'unknown'}`} className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -82,27 +82,27 @@ export default function SimpleAutoComparison({ data }: SimpleAutoComparisonProps
               <h4 className="font-semibold text-lg mb-3 text-white">Comparaison des statistiques</h4>
               <div className="grid gap-3">
                 {comparison.metrics && comparison.metrics.slice(0, 6).map((metric: any, metricIndex: number) => (
-                  <div key={metricIndex} className="flex justify-between items-center bg-gray-700/50 p-3 rounded">
-                    <span className="font-medium text-sm text-gray-300">{metric.displayName}</span>
+                  <div key={`metric-${metricIndex}-${metric.name || metricIndex}`} className="flex justify-between items-center bg-gray-700/50 p-3 rounded">
+                    <span className="font-medium text-sm text-gray-300">{metric.displayName || 'Statistique'}</span>
                     <div className="flex gap-4 text-sm">
                       <span className={`${
-                        metric.player1Value > metric.player2Value 
+                        (metric.player1Value || 0) > (metric.player2Value || 0)
                           ? 'text-blue-400 font-semibold' 
                           : 'text-gray-300'
                       }`}>
                         {metric.format === 'percentage' 
-                          ? `${metric.player1Value.toFixed(1)}%` 
-                          : metric.player1Value.toFixed(metric.format === 'integer' ? 0 : 1)
+                          ? `${(metric.player1Value || 0).toFixed(1)}%` 
+                          : (metric.player1Value || 0).toFixed(metric.format === 'integer' ? 0 : 1)
                         }{metric.unit || ''}
                       </span>
                       <span className={`${
-                        metric.player2Value > metric.player1Value 
+                        (metric.player2Value || 0) > (metric.player1Value || 0)
                           ? 'text-green-400 font-semibold' 
                           : 'text-gray-300'
                       }`}>
                         {metric.format === 'percentage' 
-                          ? `${metric.player2Value.toFixed(1)}%` 
-                          : metric.player2Value.toFixed(metric.format === 'integer' ? 0 : 1)
+                          ? `${(metric.player2Value || 0).toFixed(1)}%` 
+                          : (metric.player2Value || 0).toFixed(metric.format === 'integer' ? 0 : 1)
                         }{metric.unit || ''}
                       </span>
                     </div>
@@ -119,10 +119,10 @@ export default function SimpleAutoComparison({ data }: SimpleAutoComparisonProps
                 </h5>
                 <ul className="space-y-1 text-sm">
                   {comparison.summary?.player1Advantages?.slice(0, 4).map((advantage: string, i: number) => (
-                    <li key={i} className="text-blue-400">• {advantage}</li>
+                    <li key={`p1-adv-${i}-${advantage.substring(0, 10)}`} className="text-blue-400">• {advantage}</li>
                   ))}
                   {(!comparison.summary?.player1Advantages || comparison.summary.player1Advantages.length === 0) && (
-                    <li className="text-gray-400 italic">Aucun avantage significatif</li>
+                    <li key="p1-no-adv" className="text-gray-400 italic">Aucun avantage significatif</li>
                   )}
                 </ul>
               </div>
@@ -133,10 +133,10 @@ export default function SimpleAutoComparison({ data }: SimpleAutoComparisonProps
                 </h5>
                 <ul className="space-y-1 text-sm">
                   {comparison.summary?.player2Advantages?.slice(0, 4).map((advantage: string, i: number) => (
-                    <li key={i} className="text-green-400">• {advantage}</li>
+                    <li key={`p2-adv-${i}-${advantage.substring(0, 10)}`} className="text-green-400">• {advantage}</li>
                   ))}
                   {(!comparison.summary?.player2Advantages || comparison.summary.player2Advantages.length === 0) && (
-                    <li className="text-gray-400 italic">Aucun avantage significatif</li>
+                    <li key="p2-no-adv" className="text-gray-400 italic">Aucun avantage significatif</li>
                   )}
                 </ul>
               </div>
