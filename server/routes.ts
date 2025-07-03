@@ -920,6 +920,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route pour la comparaison automatique avec les 3 joueurs les plus similaires
+  app.get('/api/csv-direct/player/:name/auto-compare', async (req, res) => {
+    try {
+      const name = decodeURIComponent(req.params.name);
+      const targetPlayer = await csvDirectAnalyzer.getPlayerByName(name);
+
+      if (!targetPlayer) {
+        return res.status(404).json({ success: false, error: 'Joueur introuvable' });
+      }
+
+      // Trouver les 3 joueurs les plus similaires
+      const allPlayers = await csvDirectAnalyzer.getAllPlayers();
+      const { PlayerSimilarityService } = await import('./services/playerSimilarityService');
+      const similarPlayers = PlayerSimilarityService.getSimilarPlayersV2(targetPlayer, allPlayers, 3);
+      
+      if (similarPlayers.length === 0) {
+        return res.json({ 
+          success: true, 
+          targetPlayer: {
+            name: targetPlayer.Player,
+            age: targetPlayer.Age,
+            position: targetPlayer.Pos,
+            team: targetPlayer.Squad,
+            league: targetPlayer.Comp
+          },
+          comparisons: [],
+          message: 'Aucun joueur similaire trouvé'
+        });
+      }
+
+      // Comparer avec chaque joueur similaire
+      const comparisons = similarPlayers.map(similarPlayer => {
+        const comparison = comparisonService.comparePlayer(targetPlayer, similarPlayer);
+        const targetMarketValue = comparisonService.calculateMarketValue(targetPlayer);
+        const similarMarketValue = comparisonService.calculateMarketValue(similarPlayer);
+        
+        return {
+          targetPlayer: {
+            name: targetPlayer.Player,
+            age: targetPlayer.Age,
+            position: targetPlayer.Pos,
+            team: targetPlayer.Squad,
+            league: targetPlayer.Comp,
+            marketValue: comparisonService.formatMarketValue(targetMarketValue)
+          },
+          similarPlayer: {
+            name: similarPlayer.Player,
+            age: similarPlayer.Age,
+            position: similarPlayer.Pos,
+            team: similarPlayer.Squad,
+            league: similarPlayer.Comp,
+            marketValue: comparisonService.formatMarketValue(similarMarketValue),
+            similarity: similarPlayer.similarity || 0
+          },
+          metrics: comparison.metrics,
+          summary: comparison.summary,
+          marketValues: {
+            target: {
+              ...targetMarketValue,
+              formatted: comparisonService.formatMarketValue(targetMarketValue)
+            },
+            similar: {
+              ...similarMarketValue,
+              formatted: comparisonService.formatMarketValue(similarMarketValue)
+            }
+          }
+        };
+      });
+
+      res.json({ 
+        success: true,
+        targetPlayer: {
+          name: targetPlayer.Player,
+          age: targetPlayer.Age,
+          position: targetPlayer.Pos,
+          team: targetPlayer.Squad,
+          league: targetPlayer.Comp
+        },
+        comparisons,
+        message: `Comparaison avec les ${comparisons.length} joueurs les plus similaires`
+      });
+    } catch (error) {
+      console.error('Error in auto-compare:', error);
+      res.status(500).json({ success: false, error: 'Erreur lors de la comparaison automatique' });
+    }
+  });
+
   app.get('/api/csv-direct/player/:name/weaknesses', async (req, res) => {
     try {
       const name = decodeURIComponent(req.params.name).toLowerCase();

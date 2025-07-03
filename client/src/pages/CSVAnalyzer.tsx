@@ -9,6 +9,7 @@ import { Search, User, Activity, BarChart3, Zap, Map, Route, TrendingUp, Users }
 import Heatmap from "@/components/Heatmap";
 import PassMap from "@/components/PassMap";
 import PlayerComparison from "@/components/PlayerComparison";
+import AutoPlayerComparison from "@/components/AutoPlayerComparison";
 
 interface PlayerData {
   Rk: number;
@@ -46,7 +47,7 @@ export default function CSVAnalyzer() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'heatmap' | 'passmap' | 'compare'>('profile');
-  const [comparePlayer, setComparePlayer] = useState<string | null>(null);
+  const [autoCompareTriggered, setAutoCompareTriggered] = useState(false);
 
   // Récupération des statistiques générales
   const { data: leagueStats } = useQuery<ApiResponse>({
@@ -84,10 +85,10 @@ export default function CSVAnalyzer() {
     enabled: !!selectedPlayer
   });
 
-  // Comparaison de joueurs
-  const { data: comparisonData } = useQuery<ApiResponse>({
-    queryKey: ['/api/csv-direct/compare', selectedPlayer, comparePlayer],
-    enabled: !!selectedPlayer && !!comparePlayer && activeTab === 'compare'
+  // Comparaison automatique avec les 3 joueurs les plus similaires
+  const { data: autoComparisonData, isLoading: isLoadingAutoComparison } = useQuery<ApiResponse>({
+    queryKey: ['/api/csv-direct/player', selectedPlayer, 'auto-compare'],
+    enabled: !!selectedPlayer && autoCompareTriggered && activeTab === 'compare'
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -451,33 +452,66 @@ export default function CSVAnalyzer() {
 
               {activeTab === 'compare' && (
                 <div className="space-y-6">
-                  {/* Sélection du joueur à comparer */}
-                  <div className="flex items-center space-x-4">
-                    <label className="text-sm font-medium">Comparer avec:</label>
-                    <Input
-                      placeholder="Nom du joueur à comparer"
-                      value={comparePlayer || ''}
-                      onChange={(e) => setComparePlayer(e.target.value)}
-                      className="max-w-xs"
-                    />
+                  {/* Bouton de comparaison automatique */}
+                  <div className="text-center">
+                    <Button
+                      onClick={() => setAutoCompareTriggered(true)}
+                      disabled={isLoadingAutoComparison || autoCompareTriggered}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+                    >
+                      {isLoadingAutoComparison ? (
+                        <>
+                          <Activity className="w-4 h-4 mr-2 animate-spin" />
+                          Comparaison en cours...
+                        </>
+                      ) : autoCompareTriggered ? (
+                        <>
+                          <Users className="w-4 h-4 mr-2" />
+                          Comparaison effectuée
+                        </>
+                      ) : (
+                        <>
+                          <Users className="w-4 h-4 mr-2" />
+                          Comparer avec les joueurs similaires
+                        </>
+                      )}
+                    </Button>
+                    {!autoCompareTriggered && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Trouvez automatiquement les 3 joueurs avec des statistiques similaires
+                      </p>
+                    )}
                   </div>
 
-                  {comparisonData?.success ? (
-                    <PlayerComparison data={(comparisonData as any).comparison} />
-                  ) : comparePlayer ? (
+                  {autoComparisonData?.success ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={() => {
+                            setAutoCompareTriggered(false);
+                          }}
+                          variant="outline"
+                          className="text-sm"
+                        >
+                          Nouvelle comparaison
+                        </Button>
+                      </div>
+                      <AutoPlayerComparison data={autoComparisonData as any} />
+                    </div>
+                  ) : autoCompareTriggered && isLoadingAutoComparison ? (
                     <div className="text-center py-8">
-                      <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Comparaison en cours</h3>
+                      <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
+                      <h3 className="text-lg font-semibold mb-2">Analyse en cours</h3>
                       <p className="text-muted-foreground">
-                        Analyse comparative entre {playerProfile.player.Player} et {comparePlayer}...
+                        Recherche des joueurs similaires à {playerProfile?.player?.Player}...
                       </p>
                     </div>
                   ) : (
                     <div className="text-center py-8">
                       <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Comparaison de Joueurs</h3>
+                      <h3 className="text-lg font-semibold mb-2">Comparaison Automatique</h3>
                       <p className="text-muted-foreground">
-                        Entrez le nom d'un joueur pour commencer la comparaison.
+                        Cliquez sur le bouton pour comparer {playerProfile?.player?.Player} avec les joueurs ayant des statistiques similaires.
                       </p>
                     </div>
                   )}
