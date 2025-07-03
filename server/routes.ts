@@ -972,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             team: similarPlayer.Squad,
             league: similarPlayer.Comp,
             marketValue: comparisonService.formatMarketValue(similarMarketValue),
-            similarity: similarPlayer.similarity || 0
+            similarity: (similarPlayer as any).similarity || 0.5
           },
           metrics: comparison.metrics,
           summary: comparison.summary,

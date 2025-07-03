@@ -163,18 +163,18 @@ export default function AutoPlayerComparison({ data }: AutoPlayerComparisonProps
                       <div className="flex-1">
                         <Progress 
                           value={metric.player1Percentile} 
-                          className="h-2 bg-blue-100 dark:bg-blue-950"
+                          className="h-2"
                         />
-                        <span className="text-xs text-blue-600 dark:text-blue-400">
+                        <span className="text-xs text-blue-600">
                           {metric.player1Percentile}e percentile
                         </span>
                       </div>
                       <div className="flex-1">
                         <Progress 
                           value={metric.player2Percentile} 
-                          className="h-2 bg-green-100 dark:bg-green-950"
+                          className="h-2"
                         />
-                        <span className="text-xs text-green-600 dark:text-green-400">
+                        <span className="text-xs text-green-600">
                           {metric.player2Percentile}e percentile
                         </span>
                       </div>
