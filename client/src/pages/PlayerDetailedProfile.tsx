@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, MapPin, Calendar, Flag, User, Target, BarChart3, Brain, Loader2 } from "lucide-react";
+import { Download, MapPin, Calendar, Flag, User, Target, BarChart3, Brain, Loader2, Users, Activity } from "lucide-react";
+import AutoPlayerComparison from "@/components/AutoPlayerComparison";
 
 interface PlayerAnalysis {
   analysis: {
@@ -38,10 +39,9 @@ export default function PlayerDetailedProfile() {
   
   // Nouvelles fonctionnalités pour directeurs sportifs
   const [progressionData, setProgressionData] = useState<any>(null);
-  const [comparisonPlayer, setComparisonPlayer] = useState<string>("");
-  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [autoComparisonData, setAutoComparisonData] = useState<any>(null);
   const [loadingProgression, setLoadingProgression] = useState(false);
-  const [loadingComparison, setLoadingComparison] = useState(false);
+  const [loadingAutoComparison, setLoadingAutoComparison] = useState(false);
 
   // Obtenir les données CSV pour débugger
   const { data: csvData } = useQuery({
@@ -132,20 +132,20 @@ export default function PlayerDetailedProfile() {
   };
 
   // Nouvelle fonction: Comparaison de joueurs - "Peux-tu me comparer ça avec X ?"
-  const compareWithPlayer = async () => {
-    if (!decodedPlayerName || !comparisonPlayer || loadingComparison) return;
+  const startAutoComparison = async () => {
+    if (!decodedPlayerName || loadingAutoComparison) return;
     
-    setLoadingComparison(true);
+    setLoadingAutoComparison(true);
     try {
-      const response = await fetch(`/api/csv-direct/compare/${encodeURIComponent(decodedPlayerName)}/${encodeURIComponent(comparisonPlayer)}`);
+      const response = await fetch(`/api/csv-direct/player/${encodeURIComponent(decodedPlayerName)}/auto-compare`);
       if (response.ok) {
         const data = await response.json();
-        setComparisonData(data);
+        setAutoComparisonData(data);
       }
     } catch (error) {
-      console.error("Erreur lors de la comparaison:", error);
+      console.error("Erreur lors de la comparaison automatique:", error);
     } finally {
-      setLoadingComparison(false);
+      setLoadingAutoComparison(false);
     }
   };
 
@@ -530,158 +530,65 @@ export default function PlayerDetailedProfile() {
               </h2>
             </div>
 
-            <div className="space-y-4 mb-6">
-              <div className="flex space-x-4">
-                <input
-                  type="text"
-                  placeholder="Nom du joueur à comparer (ex: Erling Haaland)"
-                  value={comparisonPlayer}
-                  onChange={(e) => setComparisonPlayer(e.target.value)}
-                  className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
-                />
-                <Button 
-                  onClick={compareWithPlayer}
-                  disabled={loadingComparison || !comparisonPlayer}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  {loadingComparison ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Comparer
-                </Button>
-              </div>
+            <div className="text-center mb-6">
+              <Button
+                onClick={startAutoComparison}
+                disabled={loadingAutoComparison || !!autoComparisonData}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+              >
+                {loadingAutoComparison ? (
+                  <>
+                    <Activity className="w-4 h-4 mr-2 animate-spin" />
+                    Comparaison en cours...
+                  </>
+                ) : autoComparisonData ? (
+                  <>
+                    <Users className="w-4 h-4 mr-2" />
+                    Comparaison effectuée
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-4 h-4 mr-2" />
+                    Comparer avec les joueurs similaires
+                  </>
+                )}
+              </Button>
+              {!autoComparisonData && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Trouvez automatiquement les 3 joueurs avec des statistiques similaires
+                </p>
+              )}
               
-              {/* Suggestions de joueurs populaires */}
-              <div className="text-sm text-gray-400">
-                <span className="mr-3">Suggestions:</span>
-                {["Erling Haaland", "Phil Foden", "Marcus Rashford", "Mohamed Salah", "Kevin De Bruyne", "Virgil van Dijk"].map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => setComparisonPlayer(name)}
-                    className="mr-3 mb-2 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-xs transition-colors"
+              {autoComparisonData && (
+                <div className="mt-4">
+                  <Button
+                    onClick={() => setAutoComparisonData(null)}
+                    variant="outline"
+                    className="text-sm"
                   >
-                    {name}
-                  </button>
-                ))}
-              </div>
+                    Nouvelle comparaison
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {comparisonData ? (
-              <div className="space-y-6">
-                {/* Résumé de comparaison */}
-                <div className="bg-purple-900/20 p-4 rounded-lg">
-                  <h3 className="text-lg font-bold text-purple-300 mb-2">Verdict de la comparaison</h3>
-                  <div className="text-lg font-bold text-purple-200 mb-2">
-                    Gagnant: {comparisonData.comparison?.summary?.overallWinner === 'player1' ? comparisonData.comparison?.player1?.Player : comparisonData.comparison?.player2?.Player}
-                  </div>
-                  <div className="text-sm text-gray-300">
-                    {comparisonData.comparison?.summary?.player1Advantages?.length > comparisonData.comparison?.summary?.player2Advantages?.length ? 
-                      `${comparisonData.comparison?.player1?.Player} domine dans ${comparisonData.comparison?.summary?.player1Advantages?.length} catégories` :
-                      `${comparisonData.comparison?.player2?.Player} domine dans ${comparisonData.comparison?.summary?.player2Advantages?.length} catégories`
-                    }
-                  </div>
-                </div>
-
-                {/* Comparaison détaillée */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Joueur 1 */}
-                  <div className="bg-gray-800/50 p-4 rounded-lg">
-                    <h4 className="font-bold text-blue-300 mb-3">
-                      {comparisonData.comparison?.player1?.Player}
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.player1?.Age} ans</div>
-                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.player1?.Squad}</div>
-                      <div><span className="text-gray-400">Position:</span> {comparisonData.comparison?.player1?.Pos}</div>
-                      <div><span className="text-gray-400">Valeur:</span> {comparisonData.comparison?.marketValues?.player1?.formatted}</div>
-                    </div>
-                    <div className="mt-3">
-                      <div className="text-xs text-gray-400 mb-1">Statistiques clés</div>
-                      <div className="text-sm space-y-1">
-                        <div>Buts: {comparisonData.comparison?.player1?.Gls || 0}</div>
-                        <div>Passes: {comparisonData.comparison?.player1?.Ast || 0}</div>
-                        <div>Minutes: {comparisonData.comparison?.player1?.Min || 0}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Joueur 2 */}
-                  <div className="bg-gray-800/50 p-4 rounded-lg">
-                    <h4 className="font-bold text-pink-300 mb-3">
-                      {comparisonData.comparison?.player2?.Player}
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="text-gray-400">Âge:</span> {comparisonData.comparison?.player2?.Age} ans</div>
-                      <div><span className="text-gray-400">Club:</span> {comparisonData.comparison?.player2?.Squad}</div>
-                      <div><span className="text-gray-400">Position:</span> {comparisonData.comparison?.player2?.Pos}</div>
-                      <div><span className="text-gray-400">Valeur:</span> {comparisonData.comparison?.marketValues?.player2?.formatted}</div>
-                    </div>
-                    <div className="mt-3">
-                      <div className="text-xs text-gray-400 mb-1">Statistiques clés</div>
-                      <div className="text-sm space-y-1">
-                        <div>Buts: {comparisonData.comparison?.player2?.Gls || 0}</div>
-                        <div>Passes: {comparisonData.comparison?.player2?.Ast || 0}</div>
-                        <div>Minutes: {comparisonData.comparison?.player2?.Min || 0}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Métriques détaillées */}
-                <div className="bg-gray-800/30 p-4 rounded-lg">
-                  <h3 className="text-lg font-bold text-white mb-4">Comparaison détaillée</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {comparisonData.comparison?.metrics?.slice(0, 8).map((metric: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-700/50 rounded">
-                        <span className="text-sm text-gray-300">{metric.displayName}</span>
-                        <div className="flex space-x-4 text-sm">
-                          <span className={metric.player1Value > metric.player2Value ? 'text-green-400 font-bold' : 'text-white'}>
-                            {metric.player1Value}
-                          </span>
-                          <span className="text-gray-500">vs</span>
-                          <span className={metric.player2Value > metric.player1Value ? 'text-green-400 font-bold' : 'text-white'}>
-                            {metric.player2Value}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Forces et faiblesses */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-green-900/20 p-4 rounded-lg">
-                    <h3 className="text-lg font-bold text-green-300 mb-2">
-                      Forces de {comparisonData.comparison?.player1?.Player}
-                    </h3>
-                    <div className="space-y-1">
-                      {comparisonData.comparison?.summary?.player1Advantages?.slice(0, 5).map((advantage: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full" />
-                          <span className="text-sm text-gray-300">{advantage}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-900/20 p-4 rounded-lg">
-                    <h3 className="text-lg font-bold text-blue-300 mb-2">
-                      Forces de {comparisonData.comparison?.player2?.Player}
-                    </h3>
-                    <div className="space-y-1">
-                      {comparisonData.comparison?.summary?.player2Advantages?.slice(0, 5).map((advantage: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                          <span className="text-sm text-gray-300">{advantage}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {autoComparisonData?.success ? (
+              <AutoPlayerComparison data={autoComparisonData} />
+            ) : loadingAutoComparison ? (
+              <div className="text-center py-8">
+                <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
+                <h3 className="text-lg font-semibold mb-2">Analyse en cours</h3>
+                <p className="text-muted-foreground">
+                  Recherche des joueurs similaires à {decodedPlayerName}...
+                </p>
               </div>
             ) : (
-              <div className="text-gray-400 text-center py-8">
-                Entrez le nom d'un joueur pour le comparer avec {decodedPlayerName}.
+              <div className="text-center py-8">
+                <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Comparaison Automatique</h3>
+                <p className="text-muted-foreground">
+                  Cliquez sur le bouton pour comparer {decodedPlayerName} avec les joueurs ayant des statistiques similaires.
+                </p>
               </div>
             )}
           </CardContent>
